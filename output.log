@@ -1,0 +1,20 @@
+==========================================
+SLURM_CLUSTER_NAME = param-shivay
+SLURM_ARRAY_JOB_ID = 
+SLURM_ARRAY_TASK_ID = 
+SLURM_ARRAY_TASK_COUNT = 
+SLURM_ARRAY_TASK_MAX = 
+SLURM_ARRAY_TASK_MIN = 
+SLURM_JOB_ACCOUNT = bhu
+SLURM_JOB_ID = 1054298
+SLURM_JOB_NAME = fed_xai
+SLURM_JOB_NODELIST = cn[159-160]
+SLURM_JOB_USER = ashishlal.bhu
+SLURM_JOB_UID = 5233
+SLURM_JOB_PARTITION = standard
+SLURM_TASK_PID = 111401
+SLURM_SUBMIT_DIR = /home/ashishlal.bhu/Code/xai-mimic-workspace
+SLURM_CPUS_ON_NODE = 40
+SLURM_NTASKS = 8
+SLURM_TASK_PID = 111401
+==========================================

@@ -1,0 +1,219 @@
+2025-03-04 00:11:29,641 - training - INFO - Starting XAI model training pipeline
+2025-03-04 00:11:29,666 - training - INFO - Starting preprocessing for task: mortality
+2025-03-04 00:11:29,667 - preprocessing - INFO - Memory usage: 416.69 MB
+2025-03-04 00:11:29,667 - preprocessing - INFO - Starting preprocessing for task: mortality
+2025-03-04 00:11:29,667 - preprocessing - INFO - Loading data with 10.0% sampling
+2025-03-04 00:11:29,667 - preprocessing - INFO - Loading ADMISSIONS.csv
+2025-03-04 00:11:30,993 - preprocessing - INFO - Loading PATIENTS.csv
+2025-03-04 00:11:31,109 - preprocessing - INFO - Merging ADMISSIONS and PATIENTS
+2025-03-04 00:11:41,547 - preprocessing - INFO - Original samples: 58976, Sampled: 5897
+2025-03-04 00:11:41,548 - preprocessing - INFO - Original mortality rate: 0.099
+2025-03-04 00:11:41,548 - preprocessing - INFO - Sampled mortality rate: 0.099
+2025-03-04 00:11:41,548 - preprocessing - INFO - Loading LABEVENTS.csv in chunks
+2025-03-04 00:11:50,668 - preprocessing - INFO - Processed 0 chunks, current total rows: 768453
+2025-03-04 00:11:50,669 - preprocessing - INFO - Memory usage: 710.08 MB
+2025-03-04 00:12:01,396 - preprocessing - INFO - Finished loading LABEVENTS.csv. Final shape: (2222730, 4)
+2025-03-04 00:12:02,365 - preprocessing - INFO - Loading CHARTEVENTS.csv in chunks
+2025-03-04 00:12:11,012 - preprocessing - INFO - Processed 0 chunks, current total rows: 830323
+2025-03-04 00:12:11,012 - preprocessing - INFO - Memory usage: 798.67 MB
+2025-03-04 00:13:34,259 - preprocessing - INFO - Processed 10 chunks, current total rows: 10933413
+2025-03-04 00:13:34,333 - preprocessing - INFO - Memory usage: 997.46 MB
+2025-03-04 00:14:53,570 - preprocessing - INFO - Processed 20 chunks, current total rows: 20264800
+2025-03-04 00:14:54,183 - preprocessing - INFO - Memory usage: 1246.41 MB
+2025-03-04 00:16:29,033 - preprocessing - INFO - Processed 30 chunks, current total rows: 30097630
+2025-03-04 00:16:29,034 - preprocessing - INFO - Memory usage: 1420.84 MB
+2025-03-04 00:16:44,879 - preprocessing - INFO - Finished loading CHARTEVENTS.csv. Final shape: (32174956, 4)
+2025-03-04 00:16:47,333 - preprocessing - INFO - Loading PROCEDURES_ICD.csv in chunks
+2025-03-04 00:16:48,617 - preprocessing - INFO - Processed 0 chunks, current total rows: 23775
+2025-03-04 00:16:48,618 - preprocessing - INFO - Memory usage: 1477.78 MB
+2025-03-04 00:16:48,758 - preprocessing - INFO - Finished loading PROCEDURES_ICD.csv. Final shape: (23775, 5)
+2025-03-04 00:16:49,026 - preprocessing - INFO - Loading DIAGNOSES_ICD.csv in chunks
+2025-03-04 00:16:49,560 - preprocessing - INFO - Processed 0 chunks, current total rows: 65085
+2025-03-04 00:16:49,560 - preprocessing - INFO - Memory usage: 1477.83 MB
+2025-03-04 00:16:49,689 - preprocessing - INFO - Finished loading DIAGNOSES_ICD.csv. Final shape: (65085, 5)
+2025-03-04 00:16:49,976 - preprocessing - INFO - Loading PRESCRIPTIONS.csv in chunks
+2025-03-04 00:16:59,974 - preprocessing - INFO - Processed 0 chunks, current total rows: 414663
+2025-03-04 00:16:59,975 - preprocessing - INFO - Memory usage: 2117.73 MB
+2025-03-04 00:17:00,230 - preprocessing - INFO - Finished loading PRESCRIPTIONS.csv. Final shape: (414663, 19)
+2025-03-04 00:17:01,169 - preprocessing - INFO - Data loading completed successfully
+2025-03-04 00:17:01,178 - preprocessing - INFO - Extracting features
+2025-03-04 00:17:01,178 - preprocessing - INFO - Converting ADMITTIME to datetime
+2025-03-04 00:17:01,402 - preprocessing - INFO - Converting DISCHTIME to datetime
+2025-03-04 00:17:01,418 - preprocessing - INFO - Converting DOB to datetime
+2025-03-04 00:17:02,892 - preprocessing - INFO - Processing lab features
+2025-03-04 00:17:04,259 - preprocessing - INFO - Processing vital signs
+2025-03-04 00:17:05,107 - preprocessing - INFO - Processing procedures
+2025-03-04 00:17:05,107 - preprocessing - INFO - Converting ICD9_CODE to string type
+2025-03-04 00:17:07,750 - preprocessing - INFO - Processing diagnoses
+2025-03-04 00:17:07,750 - preprocessing - INFO - Converting diagnoses ICD9_CODE to string type
+2025-03-04 00:17:08,290 - preprocessing - INFO - Feature extraction completed. Shape: (5897, 38)
+2025-03-04 00:17:08,524 - preprocessing - INFO - Memory usage: 1026.53 MB
+2025-03-04 00:17:08,524 - training - INFO - Validating data splits...
+2025-03-04 00:17:08,524 - training - INFO - Training set shape: (4717, 32)
+2025-03-04 00:17:08,525 - training - INFO - Test set shape: (1180, 32)
+2025-03-04 00:17:08,527 - training - INFO - 
+Class distribution:
+2025-03-04 00:17:08,528 - training - INFO - Training set:
+MORTALITY
+0.0    0.900784
+1.0    0.099216
+Name: proportion, dtype: float64
+2025-03-04 00:17:08,530 - training - INFO - Test set:
+MORTALITY
+0.0    0.900847
+1.0    0.099153
+Name: proportion, dtype: float64
+2025-03-04 00:17:08,531 - training - INFO - Finding best hyperparameters...
+2025-03-04 00:17:08,532 - xai_model - INFO - Initializing XAI Model...
+2025-03-04 00:17:08,532 - xai_model - INFO - Validating features...
+2025-03-04 00:17:08,532 - xai_model - INFO - Validated 32 features
+2025-03-04 00:17:27,411 - xai_model - INFO - Model initialized with:
+2025-03-04 00:17:27,412 - xai_model - INFO - - Input dimensions: 32
+2025-03-04 00:17:27,412 - xai_model - INFO - - Hidden units: 128
+2025-03-04 00:17:27,412 - xai_model - INFO - - Dropout rate: 0.3
+2025-03-04 00:17:27,412 - xai_model - INFO - - Learning rate: 0.001
+2025-03-04 00:17:27,412 - xai_model - INFO - Starting model training...
+2025-03-04 00:17:27,460 - xai_model - INFO - Class distribution: {0.0: 4249, 1.0: 468}
+2025-03-04 00:17:27,461 - xai_model - INFO - Class weights: {0: 0.5550718, 1: 5.03953}
+2025-03-04 00:18:08,934 - xai_model - INFO - Model training completed
+2025-03-04 00:18:08,934 - training - INFO - Parameters: {'units': 128, 'dropout': 0.3, 'learning_rate': 0.001}, Validation AUC: 0.863
+2025-03-04 00:18:08,934 - xai_model - INFO - Initializing XAI Model...
+2025-03-04 00:18:08,934 - xai_model - INFO - Validating features...
+2025-03-04 00:18:08,934 - xai_model - INFO - Validated 32 features
+2025-03-04 00:18:09,083 - xai_model - INFO - Model initialized with:
+2025-03-04 00:18:09,083 - xai_model - INFO - - Input dimensions: 32
+2025-03-04 00:18:09,083 - xai_model - INFO - - Hidden units: 64
+2025-03-04 00:18:09,083 - xai_model - INFO - - Dropout rate: 0.2
+2025-03-04 00:18:09,083 - xai_model - INFO - - Learning rate: 0.001
+2025-03-04 00:18:09,084 - xai_model - INFO - Starting model training...
+2025-03-04 00:18:09,086 - xai_model - INFO - Class distribution: {0.0: 4249, 1.0: 468}
+2025-03-04 00:18:09,086 - xai_model - INFO - Class weights: {0: 0.5550718, 1: 5.03953}
+2025-03-04 00:18:19,766 - xai_model - INFO - Model training completed
+2025-03-04 00:18:19,767 - training - INFO - Parameters: {'units': 64, 'dropout': 0.2, 'learning_rate': 0.001}, Validation AUC: 0.871
+2025-03-04 00:18:19,767 - training - INFO - Best parameters found: {'units': 64, 'dropout': 0.2, 'learning_rate': 0.001}
+2025-03-04 00:18:19,767 - training - INFO - Initializing model with best parameters
+2025-03-04 00:18:19,768 - xai_model - INFO - Initializing XAI Model...
+2025-03-04 00:18:19,768 - xai_model - INFO - Validating features...
+2025-03-04 00:18:19,768 - xai_model - INFO - Validated 32 features
+2025-03-04 00:18:19,955 - xai_model - INFO - Model initialized with:
+2025-03-04 00:18:19,956 - xai_model - INFO - - Input dimensions: 32
+2025-03-04 00:18:19,956 - xai_model - INFO - - Hidden units: 64
+2025-03-04 00:18:19,956 - xai_model - INFO - - Dropout rate: 0.2
+2025-03-04 00:18:19,956 - xai_model - INFO - - Learning rate: 0.001
+2025-03-04 00:18:19,957 - training - INFO - Starting model training
+2025-03-04 00:18:19,957 - xai_model - INFO - Starting model training...
+2025-03-04 00:18:19,959 - xai_model - INFO - Class distribution: {0.0: 4249, 1.0: 468}
+2025-03-04 00:18:19,960 - xai_model - INFO - Class weights: {0: 0.5550718, 1: 5.03953}
+2025-03-04 00:18:51,121 - xai_model - INFO - Model training completed
+2025-03-04 00:18:51,121 - training - INFO - Evaluating model
+2025-03-04 00:18:51,121 - xai_model - INFO - Evaluating model performance...
+2025-03-04 00:18:53,018 - xai_model - INFO - 
+Classification Report:
+2025-03-04 00:18:53,399 - xai_model - INFO - 
+              precision    recall  f1-score   support
+
+         0.0       0.92      0.98      0.95      1063
+         1.0       0.53      0.21      0.30       117
+
+    accuracy                           0.90      1180
+   macro avg       0.73      0.60      0.63      1180
+weighted avg       0.88      0.90      0.88      1180
+
+2025-03-04 00:18:53,399 - xai_model - INFO - 
+Confusion Matrix:
+2025-03-04 00:18:53,844 - xai_model - INFO - 
+[[1041   22]
+ [  92   25]]
+2025-03-04 00:18:54,346 - xai_model - INFO - 
+ROC-AUC Score: 0.848
+2025-03-04 00:18:54,346 - training - INFO - Initializing explainers
+2025-03-04 00:18:54,346 - xai_model - INFO - Initializing explainers...
+2025-03-04 00:18:54,898 - xai_model - INFO - Explainers initialized successfully
+2025-03-04 00:18:54,898 - training - INFO - Plotting training history
+2025-03-04 00:18:54,898 - visualization - INFO - Plotting training history...
+2025-03-04 00:19:01,834 - training - INFO - Plotting confusion matrix
+2025-03-04 00:19:01,834 - visualization - INFO - Plotting confusion matrix...
+2025-03-04 00:19:03,156 - training - INFO - Generating explanations for 3 samples
+2025-03-04 00:19:03,157 - training - INFO - 
+Explaining instance 311
+2025-03-04 00:19:03,157 - training - INFO - True label: Deceased
+2025-03-04 00:19:03,221 - training - INFO - Predicted probability of mortality: 0.716
+2025-03-04 00:19:03,221 - training - INFO - Predicted class: Deceased
+2025-03-04 00:19:03,221 - xai_model - INFO - Generating both explanation...
+2025-03-04 00:19:08,790 - shap - INFO - num_full_subsets = 1
+2025-03-04 00:19:08,791 - shap - INFO - remaining_weight_vector = array([0.17443519, 0.12030013, 0.09344742, 0.07752675, 0.06709046,
+       0.05980635, 0.054511  , 0.05056092, 0.04757323, 0.04530784,
+       0.0436088 , 0.04237292, 0.04153219, 0.04104357, 0.04088325])
+2025-03-04 00:19:08,792 - shap - INFO - num_paired_subset_sizes = 15
+2025-03-04 00:19:08,885 - shap - INFO - weight_left = 0.74368134682094
+2025-03-04 00:19:15,371 - shap - INFO - np.sum(w_aug) = 32.0
+2025-03-04 00:19:15,372 - shap - INFO - np.sum(self.kernelWeights) = 1.0000000000000002
+2025-03-04 00:19:18,373 - shap - INFO - phi = array([ 0.0737794 , -0.06030442, -0.02436629, -0.02954378, -0.00728166,
+       -0.04262688, -0.02608939,  0.00249429, -0.04523042, -0.15499843,
+        0.02957822, -0.00339333, -0.00308989, -0.01848539, -0.03539801,
+       -0.00407201, -0.01523468,  0.00981999, -0.02575632, -0.13180398,
+       -0.03145558, -0.00034211, -0.00618696, -0.00514026, -0.00148358,
+        0.00213812, -0.00091191,  0.00253148, -0.02940234,  0.00138124,
+        0.        , -0.00568756])
+2025-03-04 00:19:18,374 - shap - INFO - np.sum(w_aug) = 32.0
+2025-03-04 00:19:18,375 - shap - INFO - np.sum(self.kernelWeights) = 1.0000000000000002
+2025-03-04 00:19:18,410 - shap - INFO - phi = array([-0.0737794 ,  0.06030442,  0.02436629,  0.02954378,  0.00728166,
+        0.04262688,  0.02608939, -0.00249429,  0.04523042,  0.15499843,
+       -0.02957822,  0.00339333,  0.00308989,  0.01848539,  0.03539801,
+        0.00407201,  0.01523468, -0.00982   ,  0.02575632,  0.13180398,
+        0.03145558,  0.00034211,  0.00618696,  0.00514026,  0.00148358,
+       -0.00213812,  0.00091191, -0.00253148,  0.02940234, -0.00138124,
+        0.        ,  0.00568756])
+2025-03-04 00:19:18,425 - xai_model - INFO - Raw SHAP values type: <class 'list'>
+2025-03-04 00:19:18,426 - xai_model - INFO - Raw expected_value type: <class 'numpy.ndarray'>
+2025-03-04 00:19:18,426 - xai_model - INFO - Processed values shape: (1, 32)
+2025-03-04 00:19:18,426 - xai_model - INFO - Number of features: 32
+2025-03-04 00:19:18,426 - xai_model - INFO - Final expected_value: 0.12948469785973432
+2025-03-04 00:19:18,426 - visualization - INFO - Visualizing LIME explanation...
+2025-03-04 00:19:18,729 - visualization - INFO - Visualizing SHAP values...
+2025-03-04 00:19:18,730 - visualization - INFO - Values shape: (1, 32)
+2025-03-04 00:19:18,730 - visualization - INFO - Number of features: 32
+2025-03-04 00:19:18,730 - visualization - INFO - Processed instance values shape: (32,)
+2025-03-04 00:19:18,730 - visualization - INFO - First few values: [-0.0737794   0.06030442  0.02436629]
+2025-03-04 00:19:19,156 - training - INFO - 
+Explaining instance 1154
+2025-03-04 00:19:19,156 - training - INFO - True label: Not Deceased
+2025-03-04 00:19:19,257 - training - INFO - Predicted probability of mortality: 0.082
+2025-03-04 00:19:19,258 - training - INFO - Predicted class: Not Deceased
+2025-03-04 00:19:19,258 - xai_model - INFO - Generating both explanation...
+2025-03-04 00:19:19,932 - shap - INFO - num_full_subsets = 1
+2025-03-04 00:19:19,933 - shap - INFO - remaining_weight_vector = array([0.17443519, 0.12030013, 0.09344742, 0.07752675, 0.06709046,
+       0.05980635, 0.054511  , 0.05056092, 0.04757323, 0.04530784,
+       0.0436088 , 0.04237292, 0.04153219, 0.04104357, 0.04088325])
+2025-03-04 00:19:19,934 - shap - INFO - num_paired_subset_sizes = 15
+2025-03-04 00:19:20,005 - shap - INFO - weight_left = 0.74368134682094
+2025-03-04 00:19:26,380 - shap - INFO - np.sum(w_aug) = 32.0
+2025-03-04 00:19:26,381 - shap - INFO - np.sum(self.kernelWeights) = 1.0
+2025-03-04 00:19:26,415 - shap - INFO - phi = array([-0.028734  , -0.00291025,  0.00508947, -0.0027902 ,  0.02157142,
+       -0.0175682 ,  0.00266463, -0.01736765,  0.02544116,  0.01403871,
+        0.00055268,  0.00011354, -0.00054744, -0.00078345,  0.00203854,
+        0.00195106,  0.00399218, -0.00734692,  0.03779722,  0.0062347 ,
+        0.00615604,  0.        , -0.00277902, -0.00095172, -0.00070176,
+        0.00096028,  0.00224509,  0.00050666, -0.01012047,  0.00155482,
+       -0.00121806,  0.00824278])
+2025-03-04 00:19:26,416 - shap - INFO - np.sum(w_aug) = 32.0
+2025-03-04 00:19:26,416 - shap - INFO - np.sum(self.kernelWeights) = 1.0
+2025-03-04 00:19:26,435 - shap - INFO - phi = array([ 0.028734  ,  0.00291025, -0.00508947,  0.0027902 , -0.02157142,
+        0.0175682 , -0.00266463,  0.01736765, -0.02544116, -0.01403871,
+       -0.00055268, -0.00011354,  0.00054743,  0.00078345, -0.00203854,
+       -0.00195106, -0.00399218,  0.00734692, -0.03779722, -0.0062347 ,
+       -0.00615604,  0.        ,  0.00277902,  0.00095172,  0.00070176,
+       -0.00096028, -0.00224509, -0.00050666,  0.01012047, -0.00155482,
+        0.00121806, -0.00824278])
+2025-03-04 00:19:26,436 - xai_model - INFO - Raw SHAP values type: <class 'list'>
+2025-03-04 00:19:26,436 - xai_model - INFO - Raw expected_value type: <class 'numpy.ndarray'>
+2025-03-04 00:19:26,437 - xai_model - INFO - Processed values shape: (1, 32)
+2025-03-04 00:19:26,437 - xai_model - INFO - Number of features: 32
+2025-03-04 00:19:26,437 - xai_model - INFO - Final expected_value: 0.12948469785973432
+2025-03-04 00:19:26,437 - visualization - INFO - Visualizing LIME explanation...
+2025-03-04 00:19:26,691 - visualization - INFO - Visualizing SHAP values...
+2025-03-04 00:19:26,691 - visualization - INFO - Values shape: (1, 32)
+2025-03-04 00:19:26,691 - visualization - INFO - Number of features: 32
+2025-03-04 00:19:26,691 - visualization - INFO - Processed instance values shape: (32,)
+2025-03-04 00:19:26,692 - visualization - INFO - First few values: [ 0.028734    0.00291025 -0.00508947]
+2025-03-04 00:19:27,863 - training - INFO - Pipeline completed successfully
