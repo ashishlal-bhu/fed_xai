@@ -227,7 +227,7 @@ class XAIModel(BaseEstimator, ClassifierMixin):
             callbacks = [
                 EarlyStopping(
                     monitor='val_loss',
-                    patience=10,
+                    patience=20,
                     restore_best_weights=True,
                     verbose=1
                 )
