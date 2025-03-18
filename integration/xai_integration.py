@@ -349,8 +349,8 @@ class ExplanationManager:
                 values = np.clip(values, min_val, max_val)
             
             # 2. Add differential privacy noise (Laplace mechanism)
-            sensitivity = (privacy_config.clip_range[1] - privacy_config.clip_range[0]) 
-            if privacy_config.clip_values else 2.0
+            sensitivity = ((privacy_config.clip_range[1] - privacy_config.clip_range[0]) 
+                          if privacy_config.clip_values else 2.0)
             
             scale = sensitivity / privacy_config.epsilon
             noise = np.random.laplace(0, scale, size=values.shape)
