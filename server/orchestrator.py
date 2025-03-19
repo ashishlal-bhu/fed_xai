@@ -8,6 +8,7 @@ import time
 import json
 import tensorflow as tf
 from sklearn.metrics import roc_auc_score
+from datetime import datetime
 
 # Add project root to Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))

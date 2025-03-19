@@ -50,34 +50,28 @@ def save_feature_importance_plot(
 ):
     """
     Create and save a horizontal bar plot of feature importance.
-    
-    Args:
-        explanation_data: Dictionary with explanation data
-        round_num: Training round number
-        explanation_type: Type of explanation ('lime' or 'shap')
-        max_features: Maximum number of features to display
-        output_dir: Directory to save plot
     """
     logger.info(f"Creating feature importance plot for round {round_num} ({explanation_type})")
     
-    # Get the explanations
-    if 'explanations' not in explanation_data:
-        logger.warning("No explanations found in data")
-        return
-    
-    explanations = explanation_data['explanations']
-    if explanation_type not in explanations:
-        logger.warning(f"No {explanation_type} explanations found")
-        return
+    # Get the explanations - check both structures
+    if explanation_type in explanation_data:
+        # Direct structure: {"lime": {...}, "shap": {...}}
+        feature_importance = explanation_data[explanation_type]
+    elif 'explanations' in explanation_data and explanation_type in explanation_data['explanations']:
+        # Nested structure: {"explanations": {"lime": {...}, "shap": {...}}}
+        feature_importance = explanation_data['explanations'][explanation_type]
+    else:
+        logger.warning(f"No {explanation_type} explanations found in data")
+        return None
     
     # Get feature importance
-    feature_importance = explanations[explanation_type]
+    #feature_importance = explanations[explanation_type]
     
     # Sort features by importance and take top N
     sorted_features = sorted(
-        feature_importance.items(),
-        key=lambda x: abs(x[1]),
-        reverse=True
+    feature_importance.items(),
+    key=lambda x: abs(x[1]),
+    reverse=True
     )[:max_features]
     
     # Extract feature names and values
@@ -173,20 +167,25 @@ def save_client_feature_importance_comparison(
     all_features = set()
     
     for client_id, explanation_data in client_explanations.items():
-        if ('summary' in explanation_data and 
-            explanation_type in explanation_data['summary']):
-            
+        # Check both structure types
+        if 'summary' in explanation_data and explanation_type in explanation_data['summary']:
             feature_importance = explanation_data['summary'][explanation_type]
+        elif explanation_type in explanation_data:
+            feature_importance = explanation_data[explanation_type]
+        elif 'explanations' in explanation_data and explanation_type in explanation_data['explanations']:
+            feature_importance = explanation_data['explanations'][explanation_type]
+        else:
+            continue
             
-            # Sort features by importance and take top N
-            sorted_features = sorted(
-                feature_importance.items(),
-                key=lambda x: abs(x[1]),
-                reverse=True
-            )[:max_features]
-            
-            client_features[client_id] = sorted_features
-            all_features.update([item[0] for item in sorted_features])
+        # Sort features by importance and take top N
+        sorted_features = sorted(
+            feature_importance.items(),
+            key=lambda x: abs(x[1]),
+            reverse=True
+        )[:max_features]
+        
+        client_features[client_id] = sorted_features
+        all_features.update([item[0] for item in sorted_features])
     
     # If no valid explanations found
     if not client_features:
@@ -292,11 +291,16 @@ def save_feature_importance_evolution(
         latest_round = max(explanation_history.keys())
         latest_explanation = explanation_history[latest_round]
         
-        if ('explanations' in latest_explanation and 
-            explanation_type in latest_explanation['explanations']):
-            
+        # Try both structures
+        if explanation_type in latest_explanation:
+            feature_importance = latest_explanation[explanation_type]
+        elif 'explanations' in latest_explanation and explanation_type in latest_explanation['explanations']:
             feature_importance = latest_explanation['explanations'][explanation_type]
+        else:
+            logger.warning(f"No {explanation_type} explanations found for feature selection")
+            feature_names = []
             
+        if feature_names == [] and 'feature_importance' in locals():
             # Sort features by importance and take top N
             sorted_features = sorted(
                 feature_importance.items(),
@@ -306,6 +310,11 @@ def save_feature_importance_evolution(
             
             feature_names = [item[0] for item in sorted_features]
     
+    # If still no feature names, we can't continue
+    if not feature_names:
+        logger.warning("No features identified for evolution plot")
+        return None
+        
     # Extract importance values for each feature over rounds
     rounds = sorted(explanation_history.keys())
     feature_values = {feature: [] for feature in feature_names}
@@ -313,18 +322,20 @@ def save_feature_importance_evolution(
     for round_num in rounds:
         explanation_data = explanation_history[round_num]
         
-        if ('explanations' in explanation_data and 
-            explanation_type in explanation_data['explanations']):
-            
+        # Try both structures
+        if explanation_type in explanation_data:
+            feature_importance = explanation_data[explanation_type]
+        elif 'explanations' in explanation_data and explanation_type in explanation_data['explanations']:
             feature_importance = explanation_data['explanations'][explanation_type]
-            
-            for feature in feature_names:
-                value = feature_importance.get(feature, 0.0)
-                feature_values[feature].append(value)
         else:
             # Fill with zeros if no data for this round
             for feature in feature_names:
                 feature_values[feature].append(0.0)
+            continue
+            
+        for feature in feature_names:
+            value = feature_importance.get(feature, 0.0)
+            feature_values[feature].append(value)
     
     # Create figure
     plt.figure(figsize=(12, 8))
@@ -467,14 +478,14 @@ def save_shap_summary_plot(
     
     logger.info(f"Creating SHAP summary plot for round {round_num}")
     
-    # Check if SHAP explanations are available
-    if ('explanations' not in global_explanation or 
-        'shap' not in global_explanation['explanations']):
+    # Check both structures for SHAP explanations
+    if 'shap' in global_explanation:
+        shap_importance = global_explanation['shap']
+    elif 'explanations' in global_explanation and 'shap' in global_explanation['explanations']:
+        shap_importance = global_explanation['explanations']['shap']
+    else:
         logger.warning("No SHAP explanations found")
         return
-    
-    # Extract SHAP importance values
-    shap_importance = global_explanation['explanations']['shap']
     
     # Sort features by importance and take top N
     sorted_features = sorted(
@@ -593,7 +604,7 @@ def save_privacy_impact_plot(
 def save_explanation_dashboard(
     explanation_history: Dict[int, Dict],
     output_dir: Optional[str] = None
-    ):
+):
     """
     Create and save a comprehensive dashboard of explanations.
     
@@ -626,17 +637,12 @@ def save_explanation_dashboard(
     latest_round = max(explanation_history.keys())
     
     # Create visualizations for the latest round
-    filepaths = []
-    
-    # Feature importance plots
     lime_plot = save_feature_importance_plot(
         explanation_history[latest_round],
         latest_round,
         explanation_type='lime',
         output_dir=output_dir
     )
-    if lime_plot:
-        filepaths.append(lime_plot)
     
     shap_plot = save_feature_importance_plot(
         explanation_history[latest_round],
@@ -644,8 +650,6 @@ def save_explanation_dashboard(
         explanation_type='shap',
         output_dir=output_dir
     )
-    if shap_plot:
-        filepaths.append(shap_plot)
     
     # Evolution plot for a few top features
     evolution_plot = save_feature_importance_evolution(
@@ -654,8 +658,6 @@ def save_explanation_dashboard(
         explanation_type='lime',
         output_dir=output_dir
     )
-    if evolution_plot:
-        filepaths.append(evolution_plot)
     
     # Create HTML dashboard
     html_filename = f"explanation_dashboard_{timestamp}.html"
@@ -687,51 +689,65 @@ def save_explanation_dashboard(
         """
         
         # Add LIME plot if available
+        html_content += f"""
+                <div class="row">
+                    <div class="card card-half">
+                        <h2>LIME Feature Importance (Round {latest_round})</h2>
+        """
+        
         if lime_plot:
             html_content += f"""
-                <div class="row">
-                    <div class="card card-half">
-                        <h2>LIME Feature Importance (Round {latest_round})</h2>
                         <img src="{os.path.basename(lime_plot)}" alt="LIME Feature Importance">
-                    </div>
             """
         else:
             html_content += f"""
-                <div class="row">
-                    <div class="card card-half">
-                        <h2>LIME Feature Importance (Round {latest_round})</h2>
                         <p>LIME visualization is not available.</p>
-                    </div>
             """
+        
+        html_content += f"""
+                    </div>
+        """
         
         # Add SHAP plot if available
-        if shap_plot:
-            html_content += f"""
+        html_content += f"""
                     <div class="card card-half">
                         <h2>SHAP Feature Importance (Round {latest_round})</h2>
+        """
+        
+        if shap_plot:
+            html_content += f"""
                         <img src="{os.path.basename(shap_plot)}" alt="SHAP Feature Importance">
-                    </div>
-                </div>
             """
         else:
             html_content += f"""
-                    <div class="card card-half">
-                        <h2>SHAP Feature Importance (Round {latest_round})</h2>
                         <p>SHAP visualization is not available.</p>
-                    </div>
-                </div>
             """
         
+        html_content += f"""
+                    </div>
+                </div>
+        """
+        
         # Add evolution plot if available
-        if evolution_plot:
-            html_content += f"""
+        html_content += f"""
                 <div class="row">
                     <div class="card card-full">
                         <h2>Feature Importance Evolution</h2>
+        """
+        
+        if evolution_plot:
+            html_content += f"""
                         <img src="{os.path.basename(evolution_plot)}" alt="Feature Importance Evolution">
+            """
+        else:
+            html_content += f"""
+                        <p>Feature importance evolution visualization is not available.</p>
+            """
+        
+        html_content += f"""
                     </div>
                 </div>
-            """
+        """
         
         # Add summary section
         html_content += f"""
