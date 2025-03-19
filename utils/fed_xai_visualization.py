@@ -593,7 +593,7 @@ def save_privacy_impact_plot(
 def save_explanation_dashboard(
     explanation_history: Dict[int, Dict],
     output_dir: Optional[str] = None
-):
+    ):
     """
     Create and save a comprehensive dashboard of explanations.
     
@@ -635,7 +635,8 @@ def save_explanation_dashboard(
         explanation_type='lime',
         output_dir=output_dir
     )
-    filepaths.append(lime_plot)
+    if lime_plot:
+        filepaths.append(lime_plot)
     
     shap_plot = save_feature_importance_plot(
         explanation_history[latest_round],
@@ -643,7 +644,8 @@ def save_explanation_dashboard(
         explanation_type='shap',
         output_dir=output_dir
     )
-    filepaths.append(shap_plot)
+    if shap_plot:
+        filepaths.append(shap_plot)
     
     # Evolution plot for a few top features
     evolution_plot = save_feature_importance_evolution(
@@ -652,14 +654,16 @@ def save_explanation_dashboard(
         explanation_type='lime',
         output_dir=output_dir
     )
-    filepaths.append(evolution_plot)
+    if evolution_plot:
+        filepaths.append(evolution_plot)
     
     # Create HTML dashboard
     html_filename = f"explanation_dashboard_{timestamp}.html"
     html_filepath = os.path.join(output_dir, html_filename)
     
     with open(html_filepath, 'w') as f:
-        f.write(f"""
+        # Create HTML content with checks for None
+        html_content = f"""
         <!DOCTYPE html>
         <html>
         <head>
@@ -680,24 +684,57 @@ def save_explanation_dashboard(
             <p>Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
             
             <div class="dashboard">
+        """
+        
+        # Add LIME plot if available
+        if lime_plot:
+            html_content += f"""
                 <div class="row">
                     <div class="card card-half">
                         <h2>LIME Feature Importance (Round {latest_round})</h2>
                         <img src="{os.path.basename(lime_plot)}" alt="LIME Feature Importance">
                     </div>
+            """
+        else:
+            html_content += f"""
+                <div class="row">
+                    <div class="card card-half">
+                        <h2>LIME Feature Importance (Round {latest_round})</h2>
+                        <p>LIME visualization is not available.</p>
+                    </div>
+            """
+        
+        # Add SHAP plot if available
+        if shap_plot:
+            html_content += f"""
                     <div class="card card-half">
                         <h2>SHAP Feature Importance (Round {latest_round})</h2>
                         <img src="{os.path.basename(shap_plot)}" alt="SHAP Feature Importance">
                     </div>
                 </div>
-                
+            """
+        else:
+            html_content += f"""
+                    <div class="card card-half">
+                        <h2>SHAP Feature Importance (Round {latest_round})</h2>
+                        <p>SHAP visualization is not available.</p>
+                    </div>
+                </div>
+            """
+        
+        # Add evolution plot if available
+        if evolution_plot:
+            html_content += f"""
                 <div class="row">
                     <div class="card card-full">
                         <h2>Feature Importance Evolution</h2>
                         <img src="{os.path.basename(evolution_plot)}" alt="Feature Importance Evolution">
                     </div>
                 </div>
-                
+            """
+        
+        # Add summary section
+        html_content += f"""
                 <div class="row">
                     <div class="card card-full">
                         <h2>Summary</h2>
@@ -709,7 +746,9 @@ def save_explanation_dashboard(
             </div>
         </body>
         </html>
-        """)
+        """
+        
+        f.write(html_content)
     
     logger.info(f"Saved explanation dashboard to {html_filepath}")
     
