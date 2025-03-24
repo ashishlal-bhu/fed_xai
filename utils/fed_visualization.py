@@ -15,39 +15,30 @@ def ensure_results_dir():
         os.makedirs(results_dir)
     return results_dir
 
-def save_training_plots(training_history: dict, is_final: bool = False):
-    """
-    Save plots of training metrics.
-    
-    Args:
-        training_history: Dictionary containing training history
-        is_final: Whether this is the final plot
-    """
+def save_training_plots(training_history: dict, is_final: bool = False, output_dir: str = None):
+    """Save plots of training metrics."""
     logger.info("Saving training plots...")
-    
     try:
-        # Create results directory if it doesn't exist
-        results_dir = os.path.join(os.getcwd(), 'results')
-        if not os.path.exists(results_dir):
-            os.makedirs(results_dir)
+        # Create directory if needed
+        if not output_dir:
+            output_dir = ensure_results_dir()
         
         # Extract metrics
         global_metrics = training_history.get('global_metrics', [])
-        
         if not global_metrics:
             logger.warning("No global metrics found in training history")
             return
-        
+
         # Get round numbers
         rounds = list(range(1, len(global_metrics) + 1))
-        
+
         # Safely extract metrics, using 0.0 as default if key doesn't exist
         accuracies = [m.get('accuracy', 0.0) if m else 0.0 for m in global_metrics]
         aucs = [m.get('auc', 0.0) if m else 0.0 for m in global_metrics]
-        
+
         # Create plot
         plt.figure(figsize=(12, 6))
-        
+
         # Plot accuracy
         plt.subplot(1, 2, 1)
         plt.plot(rounds, accuracies, 'b-o', linewidth=2, markersize=6)
@@ -55,7 +46,7 @@ def save_training_plots(training_history: dict, is_final: bool = False):
         plt.xlabel('Round')
         plt.ylabel('Accuracy')
         plt.grid(True)
-        
+
         # Plot AUC
         plt.subplot(1, 2, 2)
         plt.plot(rounds, aucs, 'r-o', linewidth=2, markersize=6)
@@ -63,24 +54,24 @@ def save_training_plots(training_history: dict, is_final: bool = False):
         plt.xlabel('Round')
         plt.ylabel('AUC')
         plt.grid(True)
-        
+
         plt.tight_layout()
-        
+
         # Save plot
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"training_metrics{'_final' if is_final else ''}_{timestamp}.png"
-        filepath = os.path.join(results_dir, filename)
-        
+        filepath = os.path.join(output_dir, filename)
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
-        
+
         logger.info(f"Saved training plot to {filepath}")
-        
         return filepath
+
     except Exception as e:
         logger.error(f"Error saving training plots: {str(e)}")
         # Don't re-raise the exception to prevent halting the training process
         return None
+
 
 def save_client_contributions(training_history: dict, is_final: bool = False):
     """
