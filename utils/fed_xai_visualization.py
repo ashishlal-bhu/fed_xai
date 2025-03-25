@@ -118,14 +118,17 @@ def save_feature_importance_plot(
     
     # Save plot
     if output_dir is None:
-        output_dir = ensure_results_dir('explanations')
-    
+        output_dir = ensure_results_dir('visualizations')
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename = f"{explanation_type}_importance_round_{round_num}_{timestamp}.png"
     filepath = os.path.join(output_dir, filename)
-    
+
+    # Ensure the directory exists
+    os.makedirs(os.path.dirname(filepath), exist_ok=True)
+
     plt.savefig(filepath, dpi=300, bbox_inches='tight')
     plt.close()
+    logger.info(f"Saved feature importance plot to {filepath}")
     
     logger.info(f"Saved feature importance plot to {filepath}")
     
