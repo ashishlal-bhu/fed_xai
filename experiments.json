@@ -1,0 +1,39 @@
+# experiments.json
+{
+  "privacy_experiments": {
+    "no_privacy": {
+      "name": "no_privacy_baseline",
+      "num_rounds": 25,
+      "num_clients": 8,
+      "use_lime": true,
+      "use_shap": true,
+      "enable_privacy": false
+    },
+    "low_privacy": {
+      "name": "low_privacy",
+      "num_rounds": 25,
+      "num_clients": 8,
+      "enable_privacy": true,
+      "epsilon": 10.0
+    },
+    "high_privacy": {
+      "name": "high_privacy",
+      "num_rounds": 25,
+      "num_clients": 8,
+      "enable_privacy": true,
+      "epsilon": 0.1
+    }
+  },
+  "explainer_experiments": {
+    "lime_only": {
+      "name": "lime_explainer",
+      "use_lime": true,
+      "use_shap": false
+    },
+    "shap_only": {
+      "name": "shap_explainer",
+      "use_lime": false,
+      "use_shap": true
+    }
+  }
+}
