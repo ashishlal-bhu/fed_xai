@@ -14,7 +14,7 @@ from configuration.xai_config import FederatedXAIConfig, ExplainabilityConfig, P
 from utils.fed_visualization import save_training_plots
 from utils.fed_xai_visualization import create_all_visualizations
 
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger('run_experiment')
 
 def main():

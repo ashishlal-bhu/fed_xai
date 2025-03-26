@@ -304,6 +304,9 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
         if max_features is None:
             max_features = 10  # Default to 10 features
         
+        if self.lime_explainer is None:
+            logger.error("LIME explainer not initialized! Check initialize_explainers() call")
+        
         try:
             instance_arr = self._validate_input_data(instance)
             explanations = {}
@@ -317,6 +320,11 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                     **lime_kwargs
                 )
                 explanations['lime'] = lime_exp
+                
+                # Add debug output
+                logger.debug(f"Raw LIME explanation: {lime_exp.as_list()}")
+                logger.debug(f"LIME prediction: {lime_exp.predict_proba}")
+                logger.debug(f"LIME local prediction: {lime_exp.local_pred}")
             
             # Get SHAP explanation if initialized
             if self.shap_initialized and self.shap_explainer is not None:
@@ -355,7 +363,7 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
             return explanations
             
         except Exception as e:
-            logger.error(f"Error generating explanation: {str(e)}")
+            logger.error(f"Error generating explanation $$$$$$$$$: {str(e)}")
             raise
 
     def get_explanations_summary(

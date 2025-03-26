@@ -89,9 +89,15 @@ class ExplanationManager:
             return None
         
         logger.info(f"Generating explanations for client {self.client_id} (round {round_num})")
-        
+        logger.debug(f"Input data shapes - X: {X.shape}, y: {y.shape}")
+        logger.debug(f"Class distribution: {np.unique(y, return_counts=True)}")
         # Sample data for explanations
         X_sample, y_sample = self._sample_data_for_explanations(X, y)
+        
+        if X_sample is None:
+         logger.error("Sampling failed - check privacy constraints")
+        
+        logger.debug(f"Sampled data shapes - X: {X_sample.shape}, y: {y_sample.shape}")
         
         # Generate raw explanations
         raw_explanations = self._generate_raw_explanations(client, X_sample)
@@ -252,16 +258,27 @@ class ExplanationManager:
     
     def _extract_lime_importances(self, raw_explanations: List[Dict[str, Any]]) -> Dict[str, float]:
         """Extract and aggregate LIME feature importances."""
+        logger.debug(f"Processing {len(raw_explanations)} LIME explanations")
+        
         # Initialize with zeros for all features
         importances = {feature: 0.0 for feature in self.feature_names}
         count = 0
+            
         
-        for explanation in raw_explanations:
+        
+        for i, explanation in raw_explanations:
             if 'lime' not in explanation:
+                logger.warning(f"Missing LIME explanation in record {i}")
                 continue
                 
             lime_exp = explanation['lime']
             features = lime_exp.as_list()
+            
+            # Debug individual explanation
+            logger.debug(f"Explanation {i} features: {features}")
+            
+            if not features:
+                logger.warning(f"Empty LIME explanation for record {i}")
             
             for feature, importance in features:
                 if feature in importances:
@@ -333,6 +350,10 @@ class ExplanationManager:
         
         logger.info("Applying privacy mechanisms to explanations")
         
+        logger.debug("Pre-privacy LIME values:")
+        for feature, value in summary['lime'].items():
+            logger.debug(f"{feature}: {value:.4f}")
+        
         # Process each explanation type
         for exp_type, importances in summary.items():
             # Skip if empty
@@ -361,6 +382,10 @@ class ExplanationManager:
                 feature: float(value)
                 for feature, value in zip(features, values)
             }
+        
+        logger.debug("Post-privacy LIME values:")
+        for feature, value in summary['lime'].items():
+            logger.debug(f"{feature}: {value:.4f}")
         
         return summary
     
