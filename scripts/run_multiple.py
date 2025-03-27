@@ -4,6 +4,7 @@ import json
 import logging
 import os
 import sys
+from datetime import datetime
 
 # Add project root to Python path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
@@ -14,7 +15,28 @@ from configuration.xai_config import FederatedXAIConfig, ExplainabilityConfig, P
 from utils.fed_visualization import save_training_plots
 from utils.fed_xai_visualization import create_all_visualizations
 
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+# Create a logs directory if it doesn't exist
+logs_dir = os.path.join(os.getcwd(), 'logs')
+os.makedirs(logs_dir, exist_ok=True)
+
+# Generate a unique log file name with timestamp
+timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+log_file = os.path.join(logs_dir, f'federated_xai_{timestamp}.log')
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,  # Set the root logger to DEBUG level
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler(log_file),  # Log to file
+        logging.StreamHandler()  # Log to console
+    ]
+)
+
+# Set third-party loggers to a higher level to reduce noise
+logging.getLogger('tensorflow').setLevel(logging.WARNING)
+logging.getLogger('matplotlib').setLevel(logging.WARNING)
+
 logger = logging.getLogger('run_experiment')
 
 def main():
