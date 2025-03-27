@@ -1,0 +1,65 @@
+{
+    "experiment_groups": [
+      {
+        "group_name": "baseline",
+        "experiments": [
+          {
+            "name": "base_lime",
+            "task": "mortality",
+            "data": {
+              "sample_fraction": 0.4,
+              "distribution": "dirichlet"
+            },
+            "model": {
+              "hidden_sizes": [256, 128],
+              "dropout": 0.3,
+              "learning_rate": 0.001
+            },
+            "federated": {
+              "num_clients": 8,
+              "rounds": 20,
+              "local_epochs": 2,
+              "client_fraction": 0.75,
+              "batch_size": 32
+            },
+            "xai_config": {
+              "explainability": {
+                "use_lime": true,
+                "use_shap": false
+              },
+              "privacy": {
+                "enable_privacy": false
+              }
+            }
+          }
+        ]
+      },
+      {
+        "group_name": "privacy_study",
+        "experiments": [
+          {
+            "name": "private_lime_eps1",
+            "xai_config": {
+              "explainability": {
+                "use_lime": true,
+                "lime_samples": 5000
+              },
+              "privacy": {
+                "enable_privacy": true,
+                "epsilon": 1.0
+              }
+            }
+          },
+          {
+            "name": "private_lime_eps0.1",
+            "xai_config": {
+              "privacy": {
+                "epsilon": 0.1
+              }
+            }
+          }
+        ]
+      }
+    ]
+  }
+  
