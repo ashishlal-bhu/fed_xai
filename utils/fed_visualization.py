@@ -5,6 +5,7 @@ import os
 import logging
 import pandas as pd
 from datetime import datetime
+from typing import Optional
 
 logger = logging.getLogger('fed_visualization')
 
@@ -73,21 +74,23 @@ def save_training_plots(training_history: dict, is_final: bool = False, output_d
         return None
 
 
-def save_client_contributions(training_history: dict, is_final: bool = False):
+def save_client_contributions(training_history: dict, is_final: bool = False, output_dir: Optional[str] = None):
     """
     Save plots of client contributions.
     
     Args:
         training_history: Dictionary containing training history
         is_final: Whether this is the final plot
+        output_dir: Optional directory to save plots (defaults to results directory)
     """
     logger.info("Saving client contribution plots...")
     
     try:
         # Create results directory if it doesn't exist
-        results_dir = os.path.join(os.getcwd(), 'results')
-        if not os.path.exists(results_dir):
-            os.makedirs(results_dir)
+        if output_dir is None:
+            output_dir = os.path.join(os.getcwd(), 'results')
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
         
         # Extract client metrics
         rounds = training_history.get('rounds', [])
@@ -153,7 +156,7 @@ def save_client_contributions(training_history: dict, is_final: bool = False):
         # Save plot
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         filename = f"client_contributions{'_final' if is_final else ''}_{timestamp}.png"
-        filepath = os.path.join(results_dir, filename)
+        filepath = os.path.join(output_dir, filename)
         
         plt.savefig(filepath, dpi=300, bbox_inches='tight')
         plt.close()
