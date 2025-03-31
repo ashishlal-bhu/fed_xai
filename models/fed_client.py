@@ -109,7 +109,7 @@ class FederatedClient:
             if self._should_collect_explanations(round_num):
                 # Initialize explainers if not already initialized
                 if not self.explainers_initialized:
-                    self.initialize_explainers(X)
+                    self.initialize_explainers(X, y)
                 
                 # Generate explanations
                 explanations = self.generate_explanations(X, y, round_num)
@@ -150,21 +150,22 @@ class FederatedClient:
         """Get current local model weights"""
         return self.local_model.get_weights()
     
-    def initialize_explainers(self, X_train: Union[np.ndarray, pd.DataFrame]):
+    def initialize_explainers(self, X_train: Union[np.ndarray, pd.DataFrame], y_train: Union[np.ndarray, pd.Series]):
         """
         Initialize local explainers based on configuration.
         
         Args:
             X_train: Training data used to initialize explainers
+            y_train: Training labels used to initialize explainers
         """
         try:
             # Only initialize the explainers specified in configuration
             explainability_config = self.xai_config.explainability
             
-            # Instead of putting these in init_options, pass them directly
-            # as boolean flags and parameters
+            # Pass both X and y to the model's initialize_explainers method
             self.local_model.initialize_explainers(
                 X_train,
+                y_train,
                 lime=explainability_config.use_lime, 
                 shap=explainability_config.use_shap,
                 shap_samples=explainability_config.shap_samples,

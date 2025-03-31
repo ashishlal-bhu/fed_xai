@@ -209,28 +209,31 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
         return np.column_stack([1 - pred, pred])
 
     def initialize_explainers(
-    self, 
-    X_train: Union[np.ndarray, pd.DataFrame],
-    lime: bool = True,
-    shap: bool = True,
-    lime_samples: int = 5000,
-    shap_samples: int = 100,
-    **kwargs
+        self, 
+        X_train: Union[np.ndarray, pd.DataFrame],
+        y_train: Union[np.ndarray, pd.Series],
+        lime: bool = True,
+        shap: bool = True,
+        lime_samples: int = 5000,
+        shap_samples: int = 100,
+        **kwargs
     ):
         """
         Initialize LIME and SHAP explainers with customizable options.
     
         Args:
-         X_train: Training data for explainer initialization
+            X_train: Training data for explainer initialization
+            y_train: Training labels for explainer initialization
             lime: Whether to initialize LIME explainer
             shap: Whether to initialize SHAP explainer
             lime_samples: Number of samples for LIME training
-         shap_samples: Number of samples for SHAP background
+            shap_samples: Number of samples for SHAP background
             **kwargs: Additional explainer parameters
         """
         logger.info("Initializing explainers...")
         try:
             X_train_arr = self._validate_input_data(X_train)
+            y_train_arr = self._validate_input_data(y_train)
             
             # Initialize LIME explainer if requested
             if lime:
@@ -244,7 +247,7 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                     class_names=['Not Deceased', 'Deceased'],
                     sample_around_instance=True,
                     mode='classification',
-                    training_labels=None,  # No need for labels for explanation
+                    training_labels=y_train_arr,  # Pass training labels
                     random_state=42,  # For reproducibility
                     verbose=False
                 )
