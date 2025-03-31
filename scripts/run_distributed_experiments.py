@@ -98,122 +98,186 @@ def get_preprocessed_data(task: str, sample_fraction: float, cache_dir: str) -> 
     
     return data
 
-def create_experiment_configs() -> Dict[str, Dict[str, Any]]:
+def create_experiment_configs(quick_test: bool = False) -> Dict[str, Dict[str, Any]]:
     """Create comprehensive experiment configurations"""
-    return {
-        "baseline": {
-            "name": "baseline",
+    if quick_test:
+        # Quick test configuration with minimal settings
+        base_config = {
+            "name": "quick_test",
             "task": "mortality",
             "data": {
-                "sample_fraction": 0.4,
+                "sample_fraction": 0.1,  # Smaller dataset
                 "distribution": "dirichlet"
             },
             "model": {
-                "hidden_sizes": [256, 128, 64],
-                "dropout": 0.3,
+                "hidden_sizes": [64, 32],  # Smaller model
+                "dropout": 0.2,
                 "learning_rate": 0.001
             },
             "federated": {
-                "num_clients": 10,
-                "rounds": 25,
-                "local_epochs": 2,
+                "num_clients": 3,  # Fewer clients
+                "rounds": 5,  # Fewer rounds
+                "local_epochs": 1,  # Fewer epochs
                 "client_fraction": 0.8,
-                "batch_size": 32
+                "batch_size": 16
             },
             "xai_config": {
                 "explainability": {
                     "use_lime": True,
-                    "use_shap": True,
-                    "lime_samples": 1000,
-                    "shap_samples": 100,
-                    "max_features": 15
+                    "use_shap": False,  # Only test LIME for speed
+                    "lime_samples": 100,  # Fewer samples
+                    "max_features": 5  # Fewer features
                 },
                 "privacy": {
                     "enable_privacy": False
                 }
             }
-        },
-        "lime_only": {
-            "name": "lime_only",
-            "xai_config": {
-                "explainability": {
-                    "use_lime": True,
-                    "use_shap": False,
-                    "lime_samples": 2000  # Increased since it's the only method
+        }
+        
+        # Create quick test versions of each experiment
+        return {
+            "quick_baseline": base_config,
+            "quick_lime": {
+                **base_config,
+                "name": "quick_lime",
+                "xai_config": {
+                    **base_config["xai_config"],
+                    "explainability": {
+                        **base_config["xai_config"]["explainability"],
+                        "lime_samples": 200
+                    }
                 }
-            }
-        },
-        "shap_only": {
-            "name": "shap_only",
-            "xai_config": {
-                "explainability": {
-                    "use_lime": False,
-                    "use_shap": True,
-                    "shap_samples": 200  # Increased since it's the only method
-                }
-            }
-        },
-        "low_privacy": {
-            "name": "low_privacy",
-            "xai_config": {
-                "privacy": {
-                    "enable_privacy": True,
-                    "epsilon": 10.0,
-                    "clip_values": True,
-                    "clip_range": [-1.0, 1.0]
-                }
-            }
-        },
-        "high_privacy": {
-            "name": "high_privacy",
-            "xai_config": {
-                "privacy": {
-                    "enable_privacy": True,
-                    "epsilon": 0.1,
-                    "delta": 1e-6,
-                    "clip_values": True,
-                    "clip_range": [-1.0, 1.0],
-                    "use_secure_aggregation": True
-                }
-            }
-        },
-        "high_privacy_lime": {
-            "name": "high_privacy_lime",
-            "xai_config": {
-                "explainability": {
-                    "use_lime": True,
-                    "use_shap": False,
-                    "lime_samples": 2000
-                },
-                "privacy": {
-                    "enable_privacy": True,
-                    "epsilon": 0.1,
-                    "delta": 1e-6,
-                    "clip_values": True,
-                    "clip_range": [-1.0, 1.0],
-                    "use_secure_aggregation": True
-                }
-            }
-        },
-        "high_privacy_shap": {
-            "name": "high_privacy_shap",
-            "xai_config": {
-                "explainability": {
-                    "use_lime": False,
-                    "use_shap": True,
-                    "shap_samples": 200
-                },
-                "privacy": {
-                    "enable_privacy": True,
-                    "epsilon": 0.1,
-                    "delta": 1e-6,
-                    "clip_values": True,
-                    "clip_range": [-1.0, 1.0],
-                    "use_secure_aggregation": True
+            },
+            "quick_privacy": {
+                **base_config,
+                "name": "quick_privacy",
+                "xai_config": {
+                    **base_config["xai_config"],
+                    "privacy": {
+                        "enable_privacy": True,
+                        "epsilon": 1.0,
+                        "clip_values": True,
+                        "clip_range": [-1.0, 1.0]
+                    }
                 }
             }
         }
-    }
+    else:
+        # Original full configurations
+        return {
+            "baseline": {
+                "name": "baseline",
+                "task": "mortality",
+                "data": {
+                    "sample_fraction": 0.4,
+                    "distribution": "dirichlet"
+                },
+                "model": {
+                    "hidden_sizes": [256, 128, 64],
+                    "dropout": 0.3,
+                    "learning_rate": 0.001
+                },
+                "federated": {
+                    "num_clients": 10,
+                    "rounds": 25,
+                    "local_epochs": 2,
+                    "client_fraction": 0.8,
+                    "batch_size": 32
+                },
+                "xai_config": {
+                    "explainability": {
+                        "use_lime": True,
+                        "use_shap": True,
+                        "lime_samples": 1000,
+                        "shap_samples": 100,
+                        "max_features": 15
+                    },
+                    "privacy": {
+                        "enable_privacy": False
+                    }
+                }
+            },
+            "lime_only": {
+                "name": "lime_only",
+                "xai_config": {
+                    "explainability": {
+                        "use_lime": True,
+                        "use_shap": False,
+                        "lime_samples": 2000  # Increased since it's the only method
+                    }
+                }
+            },
+            "shap_only": {
+                "name": "shap_only",
+                "xai_config": {
+                    "explainability": {
+                        "use_lime": False,
+                        "use_shap": True,
+                        "shap_samples": 200  # Increased since it's the only method
+                    }
+                }
+            },
+            "low_privacy": {
+                "name": "low_privacy",
+                "xai_config": {
+                    "privacy": {
+                        "enable_privacy": True,
+                        "epsilon": 10.0,
+                        "clip_values": True,
+                        "clip_range": [-1.0, 1.0]
+                    }
+                }
+            },
+            "high_privacy": {
+                "name": "high_privacy",
+                "xai_config": {
+                    "privacy": {
+                        "enable_privacy": True,
+                        "epsilon": 0.1,
+                        "delta": 1e-6,
+                        "clip_values": True,
+                        "clip_range": [-1.0, 1.0],
+                        "use_secure_aggregation": True
+                    }
+                }
+            },
+            "high_privacy_lime": {
+                "name": "high_privacy_lime",
+                "xai_config": {
+                    "explainability": {
+                        "use_lime": True,
+                        "use_shap": False,
+                        "lime_samples": 2000
+                    },
+                    "privacy": {
+                        "enable_privacy": True,
+                        "epsilon": 0.1,
+                        "delta": 1e-6,
+                        "clip_values": True,
+                        "clip_range": [-1.0, 1.0],
+                        "use_secure_aggregation": True
+                    }
+                }
+            },
+            "high_privacy_shap": {
+                "name": "high_privacy_shap",
+                "xai_config": {
+                    "explainability": {
+                        "use_lime": False,
+                        "use_shap": True,
+                        "shap_samples": 200
+                    },
+                    "privacy": {
+                        "enable_privacy": True,
+                        "epsilon": 0.1,
+                        "delta": 1e-6,
+                        "clip_values": True,
+                        "clip_range": [-1.0, 1.0],
+                        "use_secure_aggregation": True
+                    }
+                }
+            }
+        }
 
 def merge_configs(base_config: Dict[str, Any], override_config: Dict[str, Any]) -> Dict[str, Any]:
     """Merge two configurations, with override taking precedence"""
@@ -308,6 +372,9 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
                 explainability_config['shap_samples'] = 100
         
         # Create XAI configuration with validated parameters
+        explanations_dir = os.path.join(exp_dir, 'explanations')
+        os.makedirs(explanations_dir, exist_ok=True)
+        
         xai_config = FederatedXAIConfig(
             explainability=ExplainabilityConfig(
                 **explainability_config
@@ -321,8 +388,15 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
             collect_explanations=True,
             explanation_rounds=[5, 10, 15, 20, 25],
             save_explanations=True,
-            explanations_path=os.path.join(exp_dir, 'explanations')
+            explanations_path=explanations_dir
         )
+        
+        # Log XAI configuration details
+        logger.info("\nDetailed XAI Configuration:")
+        logger.info(f"Explanations directory: {explanations_dir}")
+        logger.info(f"Explanation rounds: {xai_config.explanation_rounds}")
+        logger.info(f"Collect explanations: {xai_config.collect_explanations}")
+        logger.info(f"Save explanations: {xai_config.save_explanations}")
         
         # Validate XAI configuration
         if xai_config.explainability.use_lime:
@@ -381,8 +455,17 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
             logger.info("\nGenerating explanation visualizations...")
             logger.info(f"Number of explanation rounds: {len(orchestrator.explanation_history)}")
             
-            # Log explanation statistics
+            # Log explanation statistics and save explanations
             for round_num, round_data in orchestrator.explanation_history.items():
+                round_dir = os.path.join(explanations_dir, f'round_{round_num}')
+                os.makedirs(round_dir, exist_ok=True)
+                
+                # Save round explanations
+                round_file = os.path.join(round_dir, 'explanations.json')
+                with open(round_file, 'w') as f:
+                    json.dump(round_data, f, indent=2)
+                logger.info(f"Saved explanations for round {round_num} to {round_file}")
+                
                 if 'lime' in round_data:
                     lime_values = round_data['lime']
                     logger.info(f"\nRound {round_num} LIME statistics:")
@@ -390,6 +473,12 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
                     logger.info(f"Non-zero values: {sum(1 for v in lime_values.values() if v != 0)}")
                     logger.info(f"Max importance: {max(lime_values.values()):.4f}")
                     logger.info(f"Min importance: {min(lime_values.values()):.4f}")
+                    
+                    # Save LIME values separately
+                    lime_file = os.path.join(round_dir, 'lime_values.json')
+                    with open(lime_file, 'w') as f:
+                        json.dump(lime_values, f, indent=2)
+                    logger.info(f"Saved LIME values to {lime_file}")
             
             visualization_files = create_all_visualizations(
                 orchestrator.explanation_history,
@@ -397,6 +486,7 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
                 feature_names=features,
                 output_dir=exp_dir
             )
+            logger.info(f"Generated visualization files: {visualization_files}")
             
             # Create explanation dashboard
             dashboard_path = save_explanation_dashboard(
@@ -404,6 +494,8 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
                 output_dir=exp_dir
             )
             logger.info(f"Explanation dashboard saved to: {dashboard_path}")
+        else:
+            logger.warning("No explanation history found in orchestrator")
         
         # Get final metrics
         summary = orchestrator.get_training_summary()
@@ -456,13 +548,15 @@ def main():
                       help='Maximum number of parallel workers')
     parser.add_argument('--experiments', type=str, nargs='+',
                       help='Specific experiments to run (default: all)')
+    parser.add_argument('--quick_test', action='store_true',
+                      help='Run quick test mode with minimal settings')
     args = parser.parse_args()
     
     # Create output directory
     os.makedirs(args.output_dir, exist_ok=True)
     
     # Get experiment configurations
-    all_configs = create_experiment_configs()
+    all_configs = create_experiment_configs(quick_test=args.quick_test)
     
     # Filter experiments if specified
     if args.experiments:
@@ -473,6 +567,7 @@ def main():
     
     # Run experiments in parallel
     logger.info(f"Starting {len(configs)} experiments with {args.max_workers} workers")
+    logger.info(f"Quick test mode: {args.quick_test}")
     results = run_experiments_parallel(configs, args.output_dir, args.max_workers)
     
     # Save overall results
