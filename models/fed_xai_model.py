@@ -232,8 +232,22 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
         """
         logger.info("Initializing explainers...")
         try:
+            # Validate X_train
             X_train_arr = self._validate_input_data(X_train)
-            y_train_arr = self._validate_input_data(y_train)
+            
+            # Validate y_train separately
+            if isinstance(y_train, pd.Series):
+                y_train_arr = y_train.values
+            elif isinstance(y_train, np.ndarray):
+                y_train_arr = y_train
+            else:
+                raise ValueError(f"Unsupported target type: {type(y_train)}")
+                
+            if len(y_train_arr.shape) != 1:
+                raise ValueError(f"Target should be 1D, got shape {y_train_arr.shape}")
+                
+            if len(y_train_arr) != len(X_train_arr):
+                raise ValueError(f"Length mismatch: X has {len(X_train_arr)} samples, y has {len(y_train_arr)}")
             
             # Initialize LIME explainer if requested
             if lime:
