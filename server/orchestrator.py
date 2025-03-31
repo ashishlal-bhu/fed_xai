@@ -97,6 +97,10 @@ class FederatedOrchestrator:
                 xai_config=self.xai_config  # Pass XAI configuration to client
             )
             
+            # Initialize explainers if XAI is enabled
+            if self.xai_config.collect_explanations:
+                client.initialize_explainers(X)
+            
             # Register client with server
             self.server.register_client(client_id, len(X))
             
