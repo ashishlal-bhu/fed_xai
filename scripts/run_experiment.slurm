@@ -23,7 +23,7 @@ echo "SLURM_NODELIST: $SLURM_NODELIST"
 python scripts/run_distributed_experiments.py \
     --output_dir ./results \
     --max_workers 8 \
-    --experiments baseline lime_only shap_only high_privacy high_privacy_lime high_privacy_shap
-
+   # --experiments baseline lime_only shap_only high_privacy high_privacy_lime high_privacy_shap
+    --quick_test True \
 # Print completion message
 echo "Job finished at $(date)" 
