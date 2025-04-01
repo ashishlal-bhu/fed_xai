@@ -267,6 +267,9 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                 )
                 self.lime_initialized = True
                 logger.info("LIME explainer initialized")
+            else:
+                self.lime_initialized = False
+                self.lime_explainer = None
             
             # Initialize SHAP explainer with smaller background set
             if shap:
@@ -283,6 +286,9 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                 )
                 self.shap_initialized = True
                 logger.info(f"SHAP explainer initialized with {background_size} background samples")
+            else:
+                self.shap_initialized = False
+                self.shap_explainer = None
             
             logger.info("Explainer initialization completed")
             
@@ -321,8 +327,9 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
         if max_features is None:
             max_features = 10  # Default to 10 features
         
-        if self.lime_explainer is None:
-            logger.error("LIME explainer not initialized! Check initialize_explainers() call")
+        if not self.lime_initialized and not self.shap_initialized:
+            logger.error("No explainers initialized! Call initialize_explainers() first")
+            return {}
         
         try:
             instance_arr = self._validate_input_data(instance)
@@ -380,7 +387,7 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
             return explanations
             
         except Exception as e:
-            logger.error(f"Error generating explanation $$$$$$$$$: {str(e)}")
+            logger.error(f"Error generating explanation: {str(e)}")
             raise
 
     def get_explanations_summary(
