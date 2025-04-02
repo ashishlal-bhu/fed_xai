@@ -529,13 +529,6 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
                 output_dir=exp_dir
             )
             logger.info(f"Generated visualization files: {visualization_files}")
-            
-            # Create explanation dashboard
-            dashboard_path = save_explanation_dashboard(
-                orchestrator.explanation_history,
-                output_dir=exp_dir
-            )
-            logger.info(f"Explanation dashboard saved to: {dashboard_path}")
         else:
             logger.warning("No explanation history found in orchestrator")
         
