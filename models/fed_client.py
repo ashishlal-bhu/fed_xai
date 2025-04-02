@@ -417,17 +417,27 @@ class FederatedClient:
                 continue
             
             lime_exp = explanation['lime']
+            if not hasattr(lime_exp, 'as_list'):
+                logger.warning(f"Invalid LIME explanation format: {lime_exp}")
+                continue
+                
             features = lime_exp.as_list()
             
             for feature, importance in features:
                 if feature in importances:
-                    importances[feature] += abs(importance)
+                    importances[feature] += importance  # Don't use abs() here
                     count += 1
         
         # Average the importances
         if count > 0:
             for feature in importances:
                 importances[feature] /= count
+        
+        # Normalize importances to ensure non-zero values
+        max_importance = max(abs(v) for v in importances.values())
+        if max_importance > 0:
+            for feature in importances:
+                importances[feature] /= max_importance
         
         return importances
     
