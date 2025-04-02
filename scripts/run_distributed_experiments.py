@@ -351,6 +351,38 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
         privacy_config = xai_config_dict.get('privacy', {})
         aggregation_config = xai_config_dict.get('aggregation', {})
         
+        # Set default values for explainability if not provided
+        if not explainability_config:
+            explainability_config = {
+                'use_lime': True,
+                'use_shap': False,
+                'lime_samples': 1000,
+                'max_features': 15,
+                'explanations_per_client': 10,
+                'explanation_batch_size': 5
+            }
+        
+        # Set default values for privacy if not provided
+        if not privacy_config:
+            privacy_config = {
+                'enable_privacy': False,
+                'epsilon': 1.0,
+                'delta': 1e-5,
+                'clip_values': False,
+                'min_samples': 5
+            }
+        
+        # Set default values for aggregation if not provided
+        if not aggregation_config:
+            aggregation_config = {
+                'aggregation_method': 'weighted_average',
+                'temporal_decay': 0.8,
+                'discard_outliers': True,
+                'outlier_threshold': 2.0,
+                'consistency_threshold': 0.5,
+                'min_clients_per_round': 2
+            }
+        
         # Log XAI configuration
         logger.info("\nXAI Configuration:")
         logger.info(f"Explainability: {json.dumps(explainability_config, indent=2)}")
@@ -375,6 +407,15 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
         explanations_dir = os.path.join(exp_dir, 'explanations')
         os.makedirs(explanations_dir, exist_ok=True)
         
+        # Calculate explanation rounds based on total rounds
+        total_rounds = config.get('federated', {}).get('rounds', 25)
+        explanation_rounds = [5, 10, 15, 20, 25]  # Default rounds
+        # Ensure we don't exceed total rounds
+        explanation_rounds = [r for r in explanation_rounds if r <= total_rounds]
+        # Ensure we have at least one round
+        if not explanation_rounds:
+            explanation_rounds = [total_rounds]
+        
         xai_config = FederatedXAIConfig(
             explainability=ExplainabilityConfig(
                 **explainability_config
@@ -386,7 +427,7 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
                 **aggregation_config
             ),
             collect_explanations=True,
-            explanation_rounds=[5, 10, 15, 20, 25],
+            explanation_rounds=explanation_rounds,  # Use calculated rounds
             save_explanations=True,
             explanations_path=explanations_dir
         )
@@ -395,6 +436,7 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
         logger.info("\nDetailed XAI Configuration:")
         logger.info(f"Explanations directory: {explanations_dir}")
         logger.info(f"Explanation rounds: {xai_config.explanation_rounds}")
+        logger.info(f"Total training rounds: {total_rounds}")
         logger.info(f"Collect explanations: {xai_config.collect_explanations}")
         logger.info(f"Save explanations: {xai_config.save_explanations}")
         
