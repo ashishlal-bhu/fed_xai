@@ -288,8 +288,7 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                     logger.debug(f"LIME explainer configuration: {self.lime_explainer.__dict__}")
                 except Exception as e:
                     logger.error(f"Error initializing LIME explainer: {str(e)}")
-                    self.lime_initialized = False
-                    self.lime_explainer = None
+                    logger.error("Detailed error: ", exc_info=True)
             
             # Initialize SHAP explainer with smaller background set
             if shap:
@@ -316,130 +315,107 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
             logger.error(f"Error initializing explainers: {str(e)}")
             raise
 
-    def explain_instance(
-        self, 
-        instance: Union[np.ndarray, pd.Series],
-        max_features: Optional[int] = None,
-        lime_kwargs: Optional[Dict] = None,
-        shap_kwargs: Optional[Dict] = None
-    ) -> Dict:
-        """
-        Generate explanations for a single instance with customizable options.
-        
-        Args:
-            instance: The instance to explain
-            max_features: Maximum number of features to include in explanation
-            lime_kwargs: Additional parameters for LIME explanation
-            shap_kwargs: Additional parameters for SHAP explanation
-            
-        Returns:
-            Dictionary containing explanations
-        """
-        logger.info("Generating explanation...")
-        
-        # Apply default values
-        if lime_kwargs is None:
-            lime_kwargs = {}
-        if shap_kwargs is None:
-            shap_kwargs = {}
-        
-        # Set default max_features if not provided
-        if max_features is None:
-            max_features = 10  # Default to 10 features
-        
-        if not self.lime_initialized and not self.shap_initialized:
-            logger.error("No explainers initialized! Call initialize_explainers() first")
-            return {}
-        
+    def explain_instance(self, instance: np.ndarray, max_features: int = None, lime_kwargs: Dict = None, shap_kwargs: Dict = None) -> Dict[str, Any]:
+        """Generate explanations for a single instance"""
         try:
-            instance_arr = self._validate_input_data(instance)
+            logger.info("Generating explanation...")
+            
+            # Validate input
+            if not isinstance(instance, np.ndarray):
+                instance = np.array(instance)
+            if len(instance.shape) == 1:
+                instance = instance.reshape(1, -1)
+            
+            # Initialize explanations dictionary
             explanations = {}
             
-            # Get LIME explanation if initialized
-            if self.lime_initialized and self.lime_explainer is not None:
+            # Generate LIME explanation if enabled
+            if self.explainability_config.use_lime and self.lime_explainer is not None:
                 try:
-                    # Ensure instance is properly formatted
-                    if len(instance_arr.shape) > 1 and instance_arr.shape[0] > 1:
-                        logger.warning(f"Multiple instances provided, using first one: {instance_arr.shape}")
-                        instance_arr = instance_arr[0:1]
+                    # Get LIME samples from config
+                    num_samples = self.explainability_config.lime_samples
                     
-                    # Generate LIME explanation with more samples for better stability
+                    # Generate LIME explanation
                     lime_exp = self.lime_explainer.explain_instance(
-                        instance_arr[0],
+                        instance[0],
                         self.predict_proba,
-                        num_features=max_features,
-                        num_samples=min(5000, self.lime_explainer.num_samples),  # Use more samples
-                        **lime_kwargs
+                        num_features=max_features or self.explainability_config.max_features,
+                        num_samples=num_samples
                     )
                     
-                    # Verify the explanation is valid
+                    # Validate LIME explanation
                     if lime_exp is None:
                         logger.warning("LIME explanation is None")
-                        return {}
+                        return explanations
                     
-                    # Check if the explanation has any non-zero values
-                    exp_list = lime_exp.as_list()
-                    if not exp_list:
+                    if not hasattr(lime_exp, 'as_list'):
+                        logger.warning("LIME explanation missing as_list method")
+                        return explanations
+                    
+                    # Extract feature importances
+                    lime_features = lime_exp.as_list()
+                    if not lime_features:
                         logger.warning("LIME explanation has no features")
-                        return {}
+                        return explanations
+                    
+                    # Convert to dictionary format
+                    lime_importance = {str(feature): float(importance) 
+                                    for feature, importance in lime_features}
                     
                     # Check if all values are zero
-                    all_zeros = all(abs(importance) < 1e-10 for _, importance in exp_list)
-                    if all_zeros:
+                    if all(v == 0 for v in lime_importance.values()):
                         logger.warning("All LIME importance values are zero")
                     
-                    explanations['lime'] = lime_exp
+                    explanations['lime'] = lime_importance
                     
-                    # Add debug output
-                    logger.debug(f"Raw LIME explanation: {lime_exp.as_list()}")
-                    logger.debug(f"LIME prediction: {lime_exp.predict_proba}")
-                    logger.debug(f"LIME local prediction: {lime_exp.local_pred}")
-                    logger.debug(f"LIME explanation type: {type(lime_exp)}")
-                    logger.debug(f"LIME explanation attributes: {dir(lime_exp)}")
+                    # Log explanation details
+                    logger.debug(f"LIME explanation generated with {num_samples} samples")
+                    logger.debug(f"LIME features: {list(lime_importance.keys())}")
+                    logger.debug(f"LIME importances: {list(lime_importance.values())}")
+                    
                 except Exception as e:
                     logger.error(f"Error generating LIME explanation: {str(e)}")
-                    # Don't fail completely if LIME fails
-                    pass
+                    logger.error("Detailed error: ", exc_info=True)
             
-            # Get SHAP explanation if initialized
-            if self.shap_initialized and self.shap_explainer is not None:
-                # Set reasonable defaults for SHAP
-                default_shap_kwargs = {
-                    'nsamples': 'auto',  # Auto-determine sample count
-                    'l1_reg': 'aic'      # Use AIC for feature selection
-                }
-                
-                # Override defaults with provided kwargs
-                for key, value in default_shap_kwargs.items():
-                    if key not in shap_kwargs:
-                        shap_kwargs[key] = value
-                
-                # Generate SHAP values
-                shap_values = self.shap_explainer.shap_values(
-                    instance_arr,
-                    **shap_kwargs
-                )
-                
-                # Handle different return formats
-                if isinstance(shap_values, list):
-                    # For binary classification, sometimes shap_values is a list with
-                    # values for each class. We typically want class 1 (positive class)
-                    shap_values = shap_values[1]
-                
-                explanations['shap'] = {
-                    'values': shap_values,
-                    'expected_value': (
-                        self.shap_explainer.expected_value[1]
-                        if isinstance(self.shap_explainer.expected_value, list)
-                        else self.shap_explainer.expected_value
+            # Generate SHAP explanation if enabled
+            if self.explainability_config.use_shap and self.shap_explainer is not None:
+                try:
+                    # Get SHAP samples from config
+                    num_samples = self.explainability_config.shap_samples
+                    
+                    # Generate SHAP explanation
+                    shap_values = self.shap_explainer.shap_values(
+                        instance,
+                        nsamples=num_samples
                     )
-                }
+                    
+                    # Handle both single and multi-output cases
+                    if isinstance(shap_values, list):
+                        shap_values = shap_values[0]  # Take first class for binary classification
+                    
+                    # Convert to dictionary format
+                    shap_importance = {
+                        str(i): float(val) 
+                        for i, val in enumerate(shap_values[0])
+                    }
+                    
+                    explanations['shap'] = shap_importance
+                    
+                    # Log explanation details
+                    logger.debug(f"SHAP explanation generated with {num_samples} samples")
+                    logger.debug(f"SHAP features: {list(shap_importance.keys())}")
+                    logger.debug(f"SHAP importances: {list(shap_importance.values())}")
+                    
+                except Exception as e:
+                    logger.error(f"Error generating SHAP explanation: {str(e)}")
+                    logger.error("Detailed error: ", exc_info=True)
             
             return explanations
             
         except Exception as e:
-            logger.error(f"Error generating explanation: {str(e)}")
-            raise
+            logger.error(f"Error in explain_instance: {str(e)}")
+            logger.error("Detailed error: ", exc_info=True)
+            return {}
 
     def get_explanations_summary(
         self,
@@ -488,21 +464,17 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                 # Extract LIME importances
                 if 'lime' in explanation:
                     lime_exp = explanation['lime']
-                    for feature, importance in lime_exp.as_list():
+                    for feature, importance in lime_exp.items():
                         if feature in lime_importances:
                             lime_importances[feature].append(abs(importance))
                 
                 # Extract SHAP importances
                 if 'shap' in explanation:
-                    shap_values = explanation['shap']['values']
+                    shap_values = explanation['shap']
                     
-                    # Ensure we're working with a flat array
-                    if len(np.array(shap_values).shape) > 1:
-                        shap_values = shap_values[0]
-                    
-                    for i, feature in enumerate(self.feature_names):
-                        if i < len(shap_values):
-                            shap_importances[feature].append(abs(shap_values[i]))
+                    for feature, importance in shap_values.items():
+                        if feature in shap_importances:
+                            shap_importances[feature].append(abs(importance))
             
             # Compute average importance for each feature
             average_lime = {
