@@ -97,6 +97,10 @@ class FederatedOrchestrator:
                 xai_config=self.xai_config  # Pass XAI configuration to client
             )
             
+            # Initialize explainers if XAI is enabled
+            if self.xai_config.collect_explanations:
+                client.initialize_explainers(X, y)  # Pass both X and y for proper initialization
+            
             # Register client with server
             self.server.register_client(client_id, len(X))
             
@@ -178,6 +182,10 @@ class FederatedOrchestrator:
                     
                     # Update client with global model
                     client.update_local_model(global_weights)
+                    
+                    # Reinitialize explainers if XAI is enabled and this is an explanation round
+                    if self.xai_config.collect_explanations and self._should_collect_explanations(self.current_round):
+                        client.initialize_explainers(X, y)
                     
                     # Train client locally with current round number
                     history = client.train_local_model(

@@ -87,13 +87,13 @@ def main(xai_config=None, rounds=25):
                     'shap_samples': 100,       # Number of samples for SHAP background
                     'max_features': 15,        # Show top 15 features in explanations
                     'explanations_per_client': 10,  # Number of examples to explain per client
-                    'explanation_batch_size': 5      # Process in small batches to save memory
+                    'explanation_batch_size': 10    # Increased batch size for explanations
                 },
                 # Configure privacy components
                 privacy={
-                    'enable_privacy': True,    # Enable privacy protections
+                    'enable_privacy': False,   # Disable privacy protections temporarily
                     'epsilon': 1.0,            # Differential privacy budget
-                    'clip_values': True,       # Clip extreme values for privacy
+                    'clip_values': False,      # Disable value clipping
                     'clip_range': [-1.0, 1.0]  # Range for clipping
                 },
                 # Configure aggregation components
