@@ -279,7 +279,6 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                         random_state=42,  # For reproducibility
                         verbose=True,  # Enable verbose output
                         discretize_continuous=True,  # Discretize continuous features
-                        sample_around_instance=True,  # Sample around the instance
                         kernel_width=0.75,  # Kernel width for the exponential kernel
                         kernel=None,  # Use default kernel
                         feature_selection='auto'  # Automatic feature selection
