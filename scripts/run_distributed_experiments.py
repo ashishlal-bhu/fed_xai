@@ -198,28 +198,44 @@ def create_experiment_configs(quick_test: bool = False) -> Dict[str, Dict[str, A
                 }
             },
             "lime_only": {
+                **all_configs["baseline"],  # Inherit all settings from baseline
                 "name": "lime_only",
                 "xai_config": {
                     "explainability": {
                         "use_lime": True,
                         "use_shap": False,
                         "lime_samples": 2000  # Increased since it's the only method
+                    },
+                    "privacy": {
+                        "enable_privacy": False
                     }
                 }
             },
             "shap_only": {
+                **all_configs["baseline"],  # Inherit all settings from baseline
                 "name": "shap_only",
                 "xai_config": {
                     "explainability": {
                         "use_lime": False,
                         "use_shap": True,
                         "shap_samples": 200  # Increased since it's the only method
+                    },
+                    "privacy": {
+                        "enable_privacy": False
                     }
                 }
             },
             "low_privacy": {
+                **all_configs["baseline"],  # Inherit all settings from baseline
                 "name": "low_privacy",
                 "xai_config": {
+                    "explainability": {
+                        "use_lime": True,
+                        "use_shap": True,
+                        "lime_samples": 1000,
+                        "shap_samples": 100,
+                        "max_features": 15
+                    },
                     "privacy": {
                         "enable_privacy": True,
                         "epsilon": 10.0,
@@ -229,8 +245,16 @@ def create_experiment_configs(quick_test: bool = False) -> Dict[str, Dict[str, A
                 }
             },
             "high_privacy": {
+                **all_configs["baseline"],  # Inherit all settings from baseline
                 "name": "high_privacy",
                 "xai_config": {
+                    "explainability": {
+                        "use_lime": True,
+                        "use_shap": True,
+                        "lime_samples": 1000,
+                        "shap_samples": 100,
+                        "max_features": 15
+                    },
                     "privacy": {
                         "enable_privacy": True,
                         "epsilon": 0.1,
@@ -242,6 +266,7 @@ def create_experiment_configs(quick_test: bool = False) -> Dict[str, Dict[str, A
                 }
             },
             "high_privacy_lime": {
+                **all_configs["baseline"],  # Inherit all settings from baseline
                 "name": "high_privacy_lime",
                 "xai_config": {
                     "explainability": {
@@ -260,6 +285,7 @@ def create_experiment_configs(quick_test: bool = False) -> Dict[str, Dict[str, A
                 }
             },
             "high_privacy_shap": {
+                **all_configs["baseline"],  # Inherit all settings from baseline
                 "name": "high_privacy_shap",
                 "xai_config": {
                     "explainability": {
