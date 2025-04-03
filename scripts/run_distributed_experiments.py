@@ -266,8 +266,9 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
         
         # Log XAI configuration
         logger.info("\nXAI Configuration:")
-        logger.info(f"Explainability: {json.dumps(xai_config.explainability, indent=2)}")
-        logger.info(f"Privacy: {json.dumps(xai_config.privacy, indent=2)}")
+        logger.info(f"Explainability: {json.dumps(xai_config.explainability.to_dict(), indent=2)}")
+        logger.info(f"Privacy: {json.dumps(xai_config.privacy.to_dict(), indent=2)}")
+        logger.info(f"Aggregation: {json.dumps(xai_config.aggregation.to_dict(), indent=2)}")
         
         # Validate explainability configuration
         if xai_config.explainability.use_lime:
