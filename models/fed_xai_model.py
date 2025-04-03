@@ -278,6 +278,7 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                         return
                 
                 try:
+                    # Initialize LIME explainer with more robust parameters
                     self.lime_explainer = lime.lime_tabular.LimeTabularExplainer(
                         X_train_arr,
                         feature_names=self.feature_names,
@@ -298,6 +299,8 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                 except Exception as e:
                     logger.error(f"Error initializing LIME explainer: {str(e)}")
                     logger.error("Detailed error: ", exc_info=True)
+                    self.lime_initialized = False
+                    self.lime_explainer = None
             
             # Initialize SHAP explainer with smaller background set
             if shap:
@@ -423,20 +426,33 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                     
                     # Convert to dictionary format
                     shap_importance = {}
+                    non_zero_found = False
                     
                     # Check if shap_values is a dictionary (already processed)
                     if isinstance(shap_values, dict):
                         for feature, importance in shap_values.items():
                             if feature in self.feature_names:
+                                # Handle numpy arrays by taking mean if multi-dimensional
+                                if isinstance(importance, np.ndarray):
+                                    importance = np.mean(importance)
                                 shap_importance[feature] = float(importance)
                                 if abs(float(importance)) > 0:
                                     non_zero_found = True
                     # Check if shap_values is a numpy array
                     elif isinstance(shap_values, np.ndarray):
+                        # Handle multi-dimensional arrays
+                        if len(shap_values.shape) > 1:
+                            # Take mean across all dimensions except the first
+                            shap_values = np.mean(shap_values, axis=tuple(range(1, len(shap_values.shape))))
+                        
                         for i, feature in enumerate(self.feature_names):
                             if i < len(shap_values):
-                                shap_importance[feature] = float(shap_values[i])
-                                if abs(float(shap_values[i])) > 0:
+                                # Ensure we have a scalar value
+                                value = shap_values[i]
+                                if isinstance(value, np.ndarray):
+                                    value = np.mean(value)
+                                shap_importance[feature] = float(value)
+                                if abs(float(value)) > 0:
                                     non_zero_found = True
                     
                     # If all values are zero, use fallback mechanism

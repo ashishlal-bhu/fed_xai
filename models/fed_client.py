@@ -212,6 +212,23 @@ class FederatedClient:
                 
                 if explainability_config.use_lime and 'lime' in explanation:
                     filtered_explanation['lime'] = explanation['lime']
+                elif explainability_config.use_lime:
+                    # If LIME is enabled but not in explanation, generate it
+                    try:
+                        lime_exp = self.local_model.lime_explainer.explain_instance(
+                            instance,
+                            self.local_model.predict_proba,
+                            num_features=max_features,
+                            num_samples=getattr(explainability_config, 'lime_samples', 5000)
+                        )
+                        if lime_exp is not None and hasattr(lime_exp, 'as_list'):
+                            lime_features = lime_exp.as_list()
+                            if lime_features:
+                                filtered_explanation['lime'] = {str(feature): float(importance) 
+                                                              for feature, importance in lime_features}
+                    except Exception as e:
+                        logger.error(f"Error generating LIME explanation: {str(e)}")
+                        logger.error("Detailed error: ", exc_info=True)
                 
                 if explainability_config.use_shap and 'shap' in explanation:
                     filtered_explanation['shap'] = explanation['shap']
