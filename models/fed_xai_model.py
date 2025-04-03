@@ -68,6 +68,15 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
         self.lime_initialized = False
         self.shap_initialized = False
         
+        # Initialize explainability configuration with defaults
+        self.explainability_config = type('ExplainabilityConfig', (), {
+            'use_lime': True,
+            'use_shap': True,
+            'lime_samples': 5000,
+            'shap_samples': 100,
+            'max_features': 10
+        })()
+        
         logger.info(f"Model initialized with {input_dim} features")
 
     def _validate_features(self, features: Union[List[str], pd.Index]) -> List[str]:
@@ -330,16 +339,17 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
             explanations = {}
             
             # Generate LIME explanation if enabled
-            if self.explainability_config.use_lime and self.lime_explainer is not None:
+            if self.lime_initialized and self.lime_explainer is not None:
                 try:
                     # Get LIME samples from config
-                    num_samples = self.explainability_config.lime_samples
+                    num_samples = getattr(self.explainability_config, 'lime_samples', 5000)
+                    num_features = max_features or getattr(self.explainability_config, 'max_features', 10)
                     
                     # Generate LIME explanation
                     lime_exp = self.lime_explainer.explain_instance(
                         instance[0],
                         self.predict_proba,
-                        num_features=max_features or self.explainability_config.max_features,
+                        num_features=num_features,
                         num_samples=num_samples
                     )
                     
@@ -378,10 +388,10 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                     logger.error("Detailed error: ", exc_info=True)
             
             # Generate SHAP explanation if enabled
-            if self.explainability_config.use_shap and self.shap_explainer is not None:
+            if self.shap_initialized and self.shap_explainer is not None:
                 try:
                     # Get SHAP samples from config
-                    num_samples = self.explainability_config.shap_samples
+                    num_samples = getattr(self.explainability_config, 'shap_samples', 100)
                     
                     # Generate SHAP explanation
                     shap_values = self.shap_explainer.shap_values(
