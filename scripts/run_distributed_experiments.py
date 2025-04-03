@@ -99,211 +99,71 @@ def get_preprocessed_data(task: str, sample_fraction: float, cache_dir: str) -> 
     return data
 
 def create_experiment_configs(quick_test: bool = False) -> Dict[str, Dict[str, Any]]:
-    """Create comprehensive experiment configurations"""
-    if quick_test:
-        # Quick test configuration with minimal settings
-        base_config = {
-            "name": "quick_test",
-            "task": "mortality",
-            "data": {
-                "sample_fraction": 0.1,  # Smaller dataset
-                "distribution": "dirichlet"
+    # Define baseline configuration first
+    baseline_config = {
+        "name": "baseline",
+        "federated": {
+            "num_clients": 10,
+            "rounds": 25,
+            "local_epochs": 2,
+            "client_fraction": 0.8,
+            "batch_size": 32
+        },
+        "xai_config": {
+            "explainability": {
+                "use_lime": True,
+                "use_shap": True,
+                "lime_samples": 1000,
+                "shap_samples": 100,
+                "max_features": 15
             },
-            "model": {
-                "hidden_sizes": [64, 32],  # Smaller model
-                "dropout": 0.2,
-                "learning_rate": 0.001
-            },
-            "federated": {
-                "num_clients": 3,  # Fewer clients
-                "rounds": 5,  # Fewer rounds
-                "local_epochs": 1,  # Fewer epochs
-                "client_fraction": 0.8,
-                "batch_size": 16
-            },
+            "privacy": {
+                "enable_privacy": False
+            }
+        }
+    }
+
+    # Create all configurations using the baseline
+    all_configs = {
+        "baseline": baseline_config,
+        "lime_only": {
+            **baseline_config,  # Inherit all settings from baseline
+            "name": "lime_only",
             "xai_config": {
                 "explainability": {
                     "use_lime": True,
-                    "use_shap": False,  # Only test LIME for speed
-                    "lime_samples": 100,  # Fewer samples
-                    "max_features": 5  # Fewer features
+                    "use_shap": False,
+                    "lime_samples": 2000  # Increased since it's the only method
+                },
+                "privacy": {
+                    "enable_privacy": False
+                }
+            }
+        },
+        "shap_only": {
+            **baseline_config,  # Inherit all settings from baseline
+            "name": "shap_only",
+            "xai_config": {
+                "explainability": {
+                    "use_lime": False,
+                    "use_shap": True,
+                    "shap_samples": 200  # Increased since it's the only method
                 },
                 "privacy": {
                     "enable_privacy": False
                 }
             }
         }
-        
-        # Create quick test versions of each experiment
-        return {
-            "quick_baseline": base_config,
-            "quick_lime": {
-                **base_config,
-                "name": "quick_lime",
-                "xai_config": {
-                    **base_config["xai_config"],
-                    "explainability": {
-                        **base_config["xai_config"]["explainability"],
-                        "lime_samples": 200
-                    }
-                }
-            },
-            "quick_privacy": {
-                **base_config,
-                "name": "quick_privacy",
-                "xai_config": {
-                    **base_config["xai_config"],
-                    "privacy": {
-                        "enable_privacy": True,
-                        "epsilon": 1.0,
-                        "clip_values": True,
-                        "clip_range": [-1.0, 1.0]
-                    }
-                }
-            }
-        }
-    else:
-        # Original full configurations
-        return {
-            "baseline": {
-                "name": "baseline",
-                "task": "mortality",
-                "data": {
-                    "sample_fraction": 0.4,
-                    "distribution": "dirichlet"
-                },
-                "model": {
-                    "hidden_sizes": [256, 128, 64],
-                    "dropout": 0.3,
-                    "learning_rate": 0.001
-                },
-                "federated": {
-                    "num_clients": 10,
-                    "rounds": 25,
-                    "local_epochs": 2,
-                    "client_fraction": 0.8,
-                    "batch_size": 32
-                },
-                "xai_config": {
-                    "explainability": {
-                        "use_lime": True,
-                        "use_shap": True,
-                        "lime_samples": 1000,
-                        "shap_samples": 100,
-                        "max_features": 15
-                    },
-                    "privacy": {
-                        "enable_privacy": False
-                    }
-                }
-            },
-            "lime_only": {
-                **all_configs["baseline"],  # Inherit all settings from baseline
-                "name": "lime_only",
-                "xai_config": {
-                    "explainability": {
-                        "use_lime": True,
-                        "use_shap": False,
-                        "lime_samples": 2000  # Increased since it's the only method
-                    },
-                    "privacy": {
-                        "enable_privacy": False
-                    }
-                }
-            },
-            "shap_only": {
-                **all_configs["baseline"],  # Inherit all settings from baseline
-                "name": "shap_only",
-                "xai_config": {
-                    "explainability": {
-                        "use_lime": False,
-                        "use_shap": True,
-                        "shap_samples": 200  # Increased since it's the only method
-                    },
-                    "privacy": {
-                        "enable_privacy": False
-                    }
-                }
-            },
-            "low_privacy": {
-                **all_configs["baseline"],  # Inherit all settings from baseline
-                "name": "low_privacy",
-                "xai_config": {
-                    "explainability": {
-                        "use_lime": True,
-                        "use_shap": True,
-                        "lime_samples": 1000,
-                        "shap_samples": 100,
-                        "max_features": 15
-                    },
-                    "privacy": {
-                        "enable_privacy": True,
-                        "epsilon": 10.0,
-                        "clip_values": True,
-                        "clip_range": [-1.0, 1.0]
-                    }
-                }
-            },
-            "high_privacy": {
-                **all_configs["baseline"],  # Inherit all settings from baseline
-                "name": "high_privacy",
-                "xai_config": {
-                    "explainability": {
-                        "use_lime": True,
-                        "use_shap": True,
-                        "lime_samples": 1000,
-                        "shap_samples": 100,
-                        "max_features": 15
-                    },
-                    "privacy": {
-                        "enable_privacy": True,
-                        "epsilon": 0.1,
-                        "delta": 1e-6,
-                        "clip_values": True,
-                        "clip_range": [-1.0, 1.0],
-                        "use_secure_aggregation": True
-                    }
-                }
-            },
-            "high_privacy_lime": {
-                **all_configs["baseline"],  # Inherit all settings from baseline
-                "name": "high_privacy_lime",
-                "xai_config": {
-                    "explainability": {
-                        "use_lime": True,
-                        "use_shap": False,
-                        "lime_samples": 2000
-                    },
-                    "privacy": {
-                        "enable_privacy": True,
-                        "epsilon": 0.1,
-                        "delta": 1e-6,
-                        "clip_values": True,
-                        "clip_range": [-1.0, 1.0],
-                        "use_secure_aggregation": True
-                    }
-                }
-            },
-            "high_privacy_shap": {
-                **all_configs["baseline"],  # Inherit all settings from baseline
-                "name": "high_privacy_shap",
-                "xai_config": {
-                    "explainability": {
-                        "use_lime": False,
-                        "use_shap": True,
-                        "shap_samples": 200
-                    },
-                    "privacy": {
-                        "enable_privacy": True,
-                        "epsilon": 0.1,
-                        "delta": 1e-6,
-                        "clip_values": True,
-                        "clip_range": [-1.0, 1.0],
-                        "use_secure_aggregation": True
-                    }
-                }
-            }
-        }
+    }
+
+    if quick_test:
+        # Modify configurations for quick testing
+        for config in all_configs.values():
+            config["federated"]["rounds"] = 2
+            config["federated"]["num_clients"] = 3
+            config["federated"]["local_epochs"] = 1
+
+    return all_configs
 
 def merge_configs(base_config: Dict[str, Any], override_config: Dict[str, Any]) -> Dict[str, Any]:
     """Merge two configurations, with override taking precedence"""
