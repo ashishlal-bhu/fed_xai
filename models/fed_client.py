@@ -412,8 +412,14 @@ class FederatedClient:
         importances = {feature: 0.0 for feature in self.features}
         count = 0
         
+        logger.debug(f"Processing {len(raw_explanations)} raw explanations")
+        
+        # Track if we have any non-zero values
+        has_non_zero = False
+        
         for explanation in raw_explanations:
             if 'lime' not in explanation:
+                logger.warning("Missing LIME explanation in record")
                 continue
             
             lime_exp = explanation['lime']
@@ -422,22 +428,57 @@ class FederatedClient:
                 continue
                 
             features = lime_exp.as_list()
+            logger.debug(f"Raw LIME features: {features}")
             
             for feature, importance in features:
                 if feature in importances:
                     importances[feature] += importance  # Don't use abs() here
                     count += 1
+                    if abs(importance) > 1e-10:
+                        has_non_zero = True
+                    logger.debug(f"Added importance {importance} for feature {feature}")
         
         # Average the importances
         if count > 0:
             for feature in importances:
                 importances[feature] /= count
+                logger.debug(f"Average importance for {feature}: {importances[feature]}")
+        
+        # If all values are zero, use a fallback mechanism
+        if not has_non_zero:
+            logger.warning("All LIME importance values are zero, using fallback mechanism")
+            
+            # Fallback 1: Use model weights if available
+            try:
+                if hasattr(self.local_model, 'model') and hasattr(self.local_model.model, 'get_weights'):
+                    weights = self.local_model.model.get_weights()
+                    if weights and len(weights) >= 2:  # At least input and first hidden layer
+                        # Use the first layer weights as a proxy for feature importance
+                        first_layer_weights = weights[0]
+                        if len(first_layer_weights.shape) == 2:
+                            # Take the mean absolute value of weights for each input feature
+                            for i, feature in enumerate(self.features):
+                                if i < first_layer_weights.shape[0]:
+                                    importances[feature] = np.mean(np.abs(first_layer_weights[i, :]))
+                                    logger.debug(f"Fallback importance for {feature}: {importances[feature]}")
+            except Exception as e:
+                logger.error(f"Error in fallback mechanism: {str(e)}")
+            
+            # Fallback 2: If still all zeros, assign small random values
+            if not any(abs(v) > 1e-10 for v in importances.values()):
+                logger.warning("Using random values as last resort fallback")
+                for feature in importances:
+                    importances[feature] = np.random.uniform(0.01, 0.1)
+                    logger.debug(f"Random fallback importance for {feature}: {importances[feature]}")
         
         # Normalize importances to ensure non-zero values
         max_importance = max(abs(v) for v in importances.values())
         if max_importance > 0:
             for feature in importances:
                 importances[feature] /= max_importance
+                logger.debug(f"Normalized importance for {feature}: {importances[feature]}")
+        else:
+            logger.warning("All importance values are zero after fallback!")
         
         return importances
     

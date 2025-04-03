@@ -255,21 +255,42 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                 import lime
                 import lime.lime_tabular
                 
-                self.lime_explainer = lime.lime_tabular.LimeTabularExplainer(
-                    X_train_arr,
-                    feature_names=self.feature_names,
-                    class_names=['Not Deceased', 'Deceased'],
-                    sample_around_instance=True,
-                    mode='classification',
-                    training_labels=y_train_arr,  # Pass training labels
-                    random_state=42,  # For reproducibility
-                    verbose=False
-                )
-                self.lime_initialized = True
-                logger.info("LIME explainer initialized")
-            else:
-                self.lime_initialized = False
-                self.lime_explainer = None
+                # Ensure we have enough samples for LIME
+                if len(X_train_arr) < 100:
+                    logger.warning(f"Not enough samples for LIME initialization: {len(X_train_arr)}")
+                    # Use a subset of the data if available
+                    if len(X_train_arr) > 0:
+                        X_train_arr = X_train_arr[:min(100, len(X_train_arr))]
+                        y_train_arr = y_train_arr[:min(100, len(y_train_arr))]
+                    else:
+                        logger.error("No data available for LIME initialization")
+                        self.lime_initialized = False
+                        self.lime_explainer = None
+                        return
+                
+                try:
+                    self.lime_explainer = lime.lime_tabular.LimeTabularExplainer(
+                        X_train_arr,
+                        feature_names=self.feature_names,
+                        class_names=['Not Deceased', 'Deceased'],
+                        sample_around_instance=True,
+                        mode='classification',
+                        training_labels=y_train_arr,  # Pass training labels
+                        random_state=42,  # For reproducibility
+                        verbose=True,  # Enable verbose output
+                        discretize_continuous=True,  # Discretize continuous features
+                        sample_around_instance=True,  # Sample around the instance
+                        kernel_width=0.75,  # Kernel width for the exponential kernel
+                        kernel=None,  # Use default kernel
+                        feature_selection='auto'  # Automatic feature selection
+                    )
+                    self.lime_initialized = True
+                    logger.info("LIME explainer initialized")
+                    logger.debug(f"LIME explainer configuration: {self.lime_explainer.__dict__}")
+                except Exception as e:
+                    logger.error(f"Error initializing LIME explainer: {str(e)}")
+                    self.lime_initialized = False
+                    self.lime_explainer = None
             
             # Initialize SHAP explainer with smaller background set
             if shap:
@@ -337,18 +358,49 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
             
             # Get LIME explanation if initialized
             if self.lime_initialized and self.lime_explainer is not None:
-                lime_exp = self.lime_explainer.explain_instance(
-                    instance_arr[0],
-                    self.predict_proba,
-                    num_features=max_features,
-                    **lime_kwargs
-                )
-                explanations['lime'] = lime_exp
-                
-                # Add debug output
-                logger.debug(f"Raw LIME explanation: {lime_exp.as_list()}")
-                logger.debug(f"LIME prediction: {lime_exp.predict_proba}")
-                logger.debug(f"LIME local prediction: {lime_exp.local_pred}")
+                try:
+                    # Ensure instance is properly formatted
+                    if len(instance_arr.shape) > 1 and instance_arr.shape[0] > 1:
+                        logger.warning(f"Multiple instances provided, using first one: {instance_arr.shape}")
+                        instance_arr = instance_arr[0:1]
+                    
+                    # Generate LIME explanation with more samples for better stability
+                    lime_exp = self.lime_explainer.explain_instance(
+                        instance_arr[0],
+                        self.predict_proba,
+                        num_features=max_features,
+                        num_samples=min(5000, self.lime_explainer.num_samples),  # Use more samples
+                        **lime_kwargs
+                    )
+                    
+                    # Verify the explanation is valid
+                    if lime_exp is None:
+                        logger.warning("LIME explanation is None")
+                        return {}
+                    
+                    # Check if the explanation has any non-zero values
+                    exp_list = lime_exp.as_list()
+                    if not exp_list:
+                        logger.warning("LIME explanation has no features")
+                        return {}
+                    
+                    # Check if all values are zero
+                    all_zeros = all(abs(importance) < 1e-10 for _, importance in exp_list)
+                    if all_zeros:
+                        logger.warning("All LIME importance values are zero")
+                    
+                    explanations['lime'] = lime_exp
+                    
+                    # Add debug output
+                    logger.debug(f"Raw LIME explanation: {lime_exp.as_list()}")
+                    logger.debug(f"LIME prediction: {lime_exp.predict_proba}")
+                    logger.debug(f"LIME local prediction: {lime_exp.local_pred}")
+                    logger.debug(f"LIME explanation type: {type(lime_exp)}")
+                    logger.debug(f"LIME explanation attributes: {dir(lime_exp)}")
+                except Exception as e:
+                    logger.error(f"Error generating LIME explanation: {str(e)}")
+                    # Don't fail completely if LIME fails
+                    pass
             
             # Get SHAP explanation if initialized
             if self.shap_initialized and self.shap_explainer is not None:

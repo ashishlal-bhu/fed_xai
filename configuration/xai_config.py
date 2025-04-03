@@ -8,7 +8,7 @@ enable flexible ablation studies and experiments.
 """
 
 import logging
-from typing import Dict, Any, Optional, List, Union
+from typing import Dict, Any, Optional, List, Union, Tuple
 import json
 import os
 
@@ -84,12 +84,14 @@ class PrivacyConfig:
     
     def __init__(
         self,
-        enable_privacy: bool = True,
+        enable_privacy: bool = False,
         epsilon: float = 1.0,
-        delta: float = 1e-5,
-        clip_values: bool = True,
-        clip_range: Optional[List[float]] = None,
-        min_samples: int = 5,
+        delta: float = 0.01,
+        clip_values: bool = False,
+        clip_range: Tuple[float, float] = (-1.0, 1.0),
+        noise_scale: float = 0.1,
+        min_samples: int = 100,
+        max_samples: int = 5000,
         use_secure_aggregation: bool = False,
         **kwargs
     ):
@@ -97,12 +99,14 @@ class PrivacyConfig:
         Initialize privacy configuration.
         
         Args:
-            enable_privacy: Master switch for privacy features
+            enable_privacy: Whether to enable privacy protections
             epsilon: Privacy budget (higher = less privacy)
-            delta: Delta parameter for (ε,δ)-differential privacy
-            clip_values: Whether to clip extreme values
-            clip_range: Range to clip values to, default is [-1, 1]
-            min_samples: Minimum samples required for explanation generation
+            delta: Failure probability
+            clip_values: Whether to clip explanation values
+            clip_range: Range for value clipping
+            noise_scale: Scale of noise to add (0.0 to 1.0)
+            min_samples: Minimum number of samples for explanations
+            max_samples: Maximum number of samples for explanations
             use_secure_aggregation: Whether to use secure multiparty computation
             **kwargs: Additional configuration parameters
         """
@@ -110,9 +114,23 @@ class PrivacyConfig:
         self.epsilon = epsilon
         self.delta = delta
         self.clip_values = clip_values
-        self.clip_range = clip_range or [-1.0, 1.0]
+        self.clip_range = clip_range
+        self.noise_scale = noise_scale
         self.min_samples = min_samples
+        self.max_samples = max_samples
         self.use_secure_aggregation = use_secure_aggregation
+        
+        # Validate parameters
+        if epsilon <= 0:
+            raise ValueError("Epsilon must be positive")
+        if delta <= 0 or delta >= 1:
+            raise ValueError("Delta must be between 0 and 1")
+        if noise_scale < 0 or noise_scale > 1:
+            raise ValueError("Noise scale must be between 0 and 1")
+        if min_samples < 10:
+            raise ValueError("Minimum samples must be at least 10")
+        if max_samples < min_samples:
+            raise ValueError("Maximum samples must be greater than minimum samples")
         
         # Store any additional parameters
         for key, value in kwargs.items():
@@ -125,15 +143,6 @@ class PrivacyConfig:
     
     def _validate(self):
         """Validate configuration parameters."""
-        if self.epsilon <= 0:
-            raise ValueError(f"Epsilon must be positive, got {self.epsilon}")
-        
-        if self.delta < 0 or self.delta > 1:
-            raise ValueError(f"Delta must be in [0,1], got {self.delta}")
-        
-        if self.clip_values and (len(self.clip_range) != 2 or self.clip_range[0] >= self.clip_range[1]):
-            raise ValueError(f"Invalid clip range: {self.clip_range}")
-        
         if self.epsilon > 10:
             logger.warning(f"High epsilon value ({self.epsilon}) provides minimal privacy protection")
     

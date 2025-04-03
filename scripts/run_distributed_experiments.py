@@ -206,6 +206,36 @@ def simulate_federated_data(X: pd.DataFrame, y: pd.Series, num_clients: int = 3)
     
     return client_data
 
+def create_xai_config():
+    """Create XAI configuration with updated settings."""
+    return FederatedXAIConfig(
+        enable_privacy=False,  # Disable privacy for initial testing
+        epsilon=1.0,
+        delta=0.01,
+        clip_values=False,
+        noise_scale=0.1,
+        min_samples=100,
+        max_samples=5000,
+        explanation_batch_size=10,
+        explanation_frequency=1,
+        explanation_methods=['lime', 'shap'],
+        explanation_aggregation='weighted_average',
+        explanation_visualization=True,
+        explanation_storage=True,
+        explanation_privacy=False,
+        explanation_verification=True,
+        explanation_audit=True,
+        explanation_export=True,
+        explanation_format='json',
+        explanation_compression=True,
+        explanation_encryption=False,
+        explanation_backup=True,
+        explanation_versioning=True,
+        explanation_metadata=True,
+        explanation_tags=['distributed', 'experiment'],
+        explanation_description='Distributed experiment with updated LIME settings'
+    )
+
 def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_dir: str) -> Dict[str, Any]:
     """Run a single experiment with given configuration"""
     try:
@@ -232,109 +262,26 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
         logger.info(f"Positive samples in training: {sum(y_train)}")
         
         # Create and validate XAI configuration
-        xai_config_dict = config.get('xai_config', {})
-        explainability_config = xai_config_dict.get('explainability', {})
-        privacy_config = xai_config_dict.get('privacy', {})
-        aggregation_config = xai_config_dict.get('aggregation', {})
-        
-        # Set default values for explainability if not provided
-        if not explainability_config:
-            explainability_config = {
-                'use_lime': True,
-                'use_shap': False,
-                'lime_samples': 1000,
-                'max_features': 15,
-                'explanations_per_client': 10,
-                'explanation_batch_size': 5
-            }
-        
-        # Set default values for privacy if not provided
-        if not privacy_config:
-            privacy_config = {
-                'enable_privacy': False,
-                'epsilon': 1.0,
-                'delta': 1e-5,
-                'clip_values': False,
-                'min_samples': 5
-            }
-        
-        # Set default values for aggregation if not provided
-        if not aggregation_config:
-            aggregation_config = {
-                'aggregation_method': 'weighted_average',
-                'temporal_decay': 0.8,
-                'discard_outliers': True,
-                'outlier_threshold': 2.0,
-                'consistency_threshold': 0.5,
-                'min_clients_per_round': 2
-            }
+        xai_config = create_xai_config()
         
         # Log XAI configuration
         logger.info("\nXAI Configuration:")
-        logger.info(f"Explainability: {json.dumps(explainability_config, indent=2)}")
-        logger.info(f"Privacy: {json.dumps(privacy_config, indent=2)}")
-        logger.info(f"Aggregation: {json.dumps(aggregation_config, indent=2)}")
+        logger.info(f"Explainability: {json.dumps(xai_config.explainability, indent=2)}")
+        logger.info(f"Privacy: {json.dumps(xai_config.privacy, indent=2)}")
         
         # Validate explainability configuration
-        if explainability_config.get('use_lime'):
-            if explainability_config.get('lime_samples', 0) < 100:
-                logger.warning("LIME samples too low, increasing to 1000")
-                explainability_config['lime_samples'] = 1000
-            if explainability_config.get('max_features', 0) < 5:
-                logger.warning("Max features too low for LIME, increasing to 10")
-                explainability_config['max_features'] = 10
-        
-        if explainability_config.get('use_shap'):
-            if explainability_config.get('shap_samples', 0) < 10:
-                logger.warning("SHAP samples too low, increasing to 100")
-                explainability_config['shap_samples'] = 100
-        
-        # Create XAI configuration with validated parameters
-        explanations_dir = os.path.join(exp_dir, 'explanations')
-        os.makedirs(explanations_dir, exist_ok=True)
-        
-        # Calculate explanation rounds based on total rounds
-        total_rounds = config.get('federated', {}).get('rounds', 25)
-        explanation_rounds = [5, 10, 15, 20, 25]  # Default rounds
-        # Ensure we don't exceed total rounds
-        explanation_rounds = [r for r in explanation_rounds if r <= total_rounds]
-        # Ensure we have at least one round
-        if not explanation_rounds:
-            explanation_rounds = [total_rounds]
-        
-        xai_config = FederatedXAIConfig(
-            explainability=ExplainabilityConfig(
-                **explainability_config
-            ),
-            privacy=PrivacyConfig(
-                **privacy_config
-            ),
-            aggregation=AggregationConfig(
-                **aggregation_config
-            ),
-            collect_explanations=True,
-            explanation_rounds=explanation_rounds,  # Use calculated rounds
-            save_explanations=True,
-            explanations_path=explanations_dir
-        )
-        
-        # Log XAI configuration details
-        logger.info("\nDetailed XAI Configuration:")
-        logger.info(f"Explanations directory: {explanations_dir}")
-        logger.info(f"Explanation rounds: {xai_config.explanation_rounds}")
-        logger.info(f"Total training rounds: {total_rounds}")
-        logger.info(f"Collect explanations: {xai_config.collect_explanations}")
-        logger.info(f"Save explanations: {xai_config.save_explanations}")
-        
-        # Validate XAI configuration
         if xai_config.explainability.use_lime:
-            logger.info(f"LIME configuration validated:")
-            logger.info(f"- Samples: {xai_config.explainability.lime_samples}")
-            logger.info(f"- Max features: {xai_config.explainability.max_features}")
+            if xai_config.explainability.lime_samples < 100:
+                logger.warning("LIME samples too low, increasing to 1000")
+                xai_config.explainability.lime_samples = 1000
+            if xai_config.explainability.max_features < 5:
+                logger.warning("Max features too low for LIME, increasing to 10")
+                xai_config.explainability.max_features = 10
         
         if xai_config.explainability.use_shap:
-            logger.info(f"SHAP configuration validated:")
-            logger.info(f"- Samples: {xai_config.explainability.shap_samples}")
+            if xai_config.explainability.shap_samples < 10:
+                logger.warning("SHAP samples too low, increasing to 100")
+                xai_config.explainability.shap_samples = 100
         
         # Create model configuration
         model_config = config.get('model', {
@@ -385,7 +332,7 @@ def run_single_experiment(experiment_name: str, config: Dict[str, Any], output_d
             
             # Log explanation statistics and save explanations
             for round_num, round_data in orchestrator.explanation_history.items():
-                round_dir = os.path.join(explanations_dir, f'round_{round_num}')
+                round_dir = os.path.join(exp_dir, f'round_{round_num}')
                 os.makedirs(round_dir, exist_ok=True)
                 
                 # Save round explanations
