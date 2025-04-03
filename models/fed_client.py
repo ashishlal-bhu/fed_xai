@@ -400,87 +400,86 @@ class FederatedClient:
         return summary
     
     def _extract_lime_importances(self, raw_explanations: List[Dict]) -> Dict[str, float]:
-        """
-        Extract and aggregate LIME feature importances from raw explanations.
-        
-        Args:
-            raw_explanations: List of raw explanations
+        """Extract feature importances from LIME explanations"""
+        try:
+            # Initialize importances dictionary
+            importances = {feature: 0.0 for feature in self.features}
+            non_zero_found = False
             
-        Returns:
-            Dictionary mapping features to importance values
-        """
-        importances = {feature: 0.0 for feature in self.features}
-        count = 0
-        
-        logger.debug(f"Processing {len(raw_explanations)} raw explanations")
-        
-        # Track if we have any non-zero values
-        has_non_zero = False
-        
-        for explanation in raw_explanations:
-            if 'lime' not in explanation:
-                logger.warning("Missing LIME explanation in record")
-                continue
-            
-            lime_exp = explanation['lime']
-            if not hasattr(lime_exp, 'as_list'):
-                logger.warning(f"Invalid LIME explanation format: {lime_exp}")
-                continue
+            # Process each raw explanation
+            for explanation in raw_explanations:
+                if 'lime' not in explanation:
+                    logger.warning("Missing LIME explanation in record")
+                    continue
                 
-            features = lime_exp.as_list()
-            logger.debug(f"Raw LIME features: {features}")
+                lime_exp = explanation['lime']
+                
+                # Check if lime_exp is a dictionary (already processed)
+                if isinstance(lime_exp, dict):
+                    for feature, importance in lime_exp.items():
+                        # Extract the base feature name from the condition
+                        base_feature = feature.split(' ')[0]
+                        if base_feature in importances:
+                            importances[base_feature] += abs(float(importance))
+                            if abs(float(importance)) > 0:
+                                non_zero_found = True
+                # Check if lime_exp has as_list method (raw LIME explanation)
+                elif hasattr(lime_exp, 'as_list'):
+                    for feature, importance in lime_exp.as_list():
+                        # Extract the base feature name from the condition
+                        base_feature = feature.split(' ')[0]
+                        if base_feature in importances:
+                            importances[base_feature] += abs(float(importance))
+                            if abs(float(importance)) > 0:
+                                non_zero_found = True
+                else:
+                    logger.warning(f"Invalid LIME explanation format: {lime_exp}")
             
-            for feature, importance in features:
-                if feature in importances:
-                    importances[feature] += importance  # Don't use abs() here
-                    count += 1
-                    if abs(importance) > 1e-10:
-                        has_non_zero = True
-                    logger.debug(f"Added importance {importance} for feature {feature}")
-        
-        # Average the importances
-        if count > 0:
-            for feature in importances:
-                importances[feature] /= count
-                logger.debug(f"Average importance for {feature}: {importances[feature]}")
-        
-        # If all values are zero, use a fallback mechanism
-        if not has_non_zero:
-            logger.warning("All LIME importance values are zero, using fallback mechanism")
-            
-            # Fallback 1: Use model weights if available
-            try:
-                if hasattr(self.local_model, 'model') and hasattr(self.local_model.model, 'get_weights'):
-                    weights = self.local_model.model.get_weights()
-                    if weights and len(weights) >= 2:  # At least input and first hidden layer
-                        # Use the first layer weights as a proxy for feature importance
-                        first_layer_weights = weights[0]
-                        if len(first_layer_weights.shape) == 2:
-                            # Take the mean absolute value of weights for each input feature
-                            for i, feature in enumerate(self.features):
-                                if i < first_layer_weights.shape[0]:
-                                    importances[feature] = np.mean(np.abs(first_layer_weights[i, :]))
-                                    logger.debug(f"Fallback importance for {feature}: {importances[feature]}")
-            except Exception as e:
-                logger.error(f"Error in fallback mechanism: {str(e)}")
-            
-            # Fallback 2: If still all zeros, assign small random values
-            if not any(abs(v) > 1e-10 for v in importances.values()):
-                logger.warning("Using random values as last resort fallback")
+            # Average the importances
+            num_explanations = len(raw_explanations)
+            if num_explanations > 0:
                 for feature in importances:
-                    importances[feature] = np.random.uniform(0.01, 0.1)
-                    logger.debug(f"Random fallback importance for {feature}: {importances[feature]}")
-        
-        # Normalize importances to ensure non-zero values
-        max_importance = max(abs(v) for v in importances.values())
-        if max_importance > 0:
-            for feature in importances:
-                importances[feature] /= max_importance
-                logger.debug(f"Normalized importance for {feature}: {importances[feature]}")
-        else:
-            logger.warning("All importance values are zero after fallback!")
-        
-        return importances
+                    importances[feature] /= num_explanations
+            
+            # If all values are zero, use fallback mechanism
+            if not non_zero_found:
+                logger.warning("All LIME importance values are zero, using fallback mechanism")
+                
+                # Try to use model weights as fallback
+                if hasattr(self.local_model, 'model') and hasattr(self.local_model.model, 'get_weights'):
+                    try:
+                        weights = self.local_model.model.get_weights()
+                        if weights and len(weights) > 0:
+                            # Use the first layer weights
+                            first_layer_weights = weights[0]
+                            if len(first_layer_weights.shape) == 2:
+                                # Take absolute mean of weights for each feature
+                                for i, feature in enumerate(self.features):
+                                    if i < first_layer_weights.shape[0]:
+                                        importances[feature] = float(np.mean(np.abs(first_layer_weights[i, :])))
+                                logger.info("Used model weights as fallback for LIME importances")
+                                return importances
+                    except Exception as e:
+                        logger.warning(f"Failed to use model weights as fallback: {str(e)}")
+                
+                # If model weights fallback fails, use small random values
+                logger.info("Using small random values as fallback for LIME importances")
+                for feature in importances:
+                    importances[feature] = float(np.random.uniform(0.001, 0.01))
+            
+            # Normalize importances to ensure they sum to 1
+            total = sum(importances.values())
+            if total > 0:
+                for feature in importances:
+                    importances[feature] /= total
+            
+            return importances
+            
+        except Exception as e:
+            logger.error(f"Error extracting LIME importances: {str(e)}")
+            logger.error("Detailed error: ", exc_info=True)
+            # Return small random values as last resort
+            return {feature: float(np.random.uniform(0.001, 0.01)) for feature in self.features}
     
     def _extract_shap_importances(self, raw_explanations: List[Dict]) -> Dict[str, float]:
         """
