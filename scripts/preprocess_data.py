@@ -7,6 +7,9 @@ import gc
 import logging
 from datetime import datetime
 from typing import Dict, Tuple, List
+import pickle
+import os
+from pathlib import Path
 
 # Set up logging
 logging.basicConfig(
@@ -374,9 +377,45 @@ def extract_features(df, data_dict):
         logger.error(f"Error in feature extraction: {str(e)}")
         raise
 
-def preprocess_data(task="mortality", sample_fraction=0.1):
-    """Main preprocessing function."""
+def preprocess_data(task="mortality", sample_fraction=0.1, use_cache=True, cache_dir="cached_data"):
+    """
+    Main preprocessing function with caching support.
+    
+    Args:
+        task: Task type (e.g., "mortality")
+        sample_fraction: Fraction of data to sample
+        use_cache: Whether to use cached data if available
+        cache_dir: Directory to store cached data
+        
+    Returns:
+        X_train, X_test, y_train, y_test, features
+    """
     try:
+        # Create cache directory if it doesn't exist
+        Path(cache_dir).mkdir(parents=True, exist_ok=True)
+        
+        # Define cache file names based on task and sample fraction
+        cache_file = os.path.join(
+            cache_dir, 
+            f"{task}_{int(sample_fraction*100)}pct_data.pkl"
+        )
+        
+        # Check if cached data exists and whether to use it
+        if use_cache and os.path.exists(cache_file):
+            logger.info(f"Loading cached data from {cache_file}")
+            with open(cache_file, 'rb') as f:
+                cached_data = pickle.load(f)
+                
+            logger.info(f"Loaded cached data with shapes: Train {cached_data['X_train'].shape}, Test {cached_data['X_test'].shape}")
+            return (
+                cached_data['X_train'], 
+                cached_data['X_test'], 
+                cached_data['y_train'], 
+                cached_data['y_test'], 
+                cached_data['features']
+            )
+        
+        # If no cache or use_cache=False, run the full preprocessing pipeline
         print_memory_usage()
         logger.info(f"Starting preprocessing for task: {task}")
         
@@ -416,6 +455,18 @@ def preprocess_data(task="mortality", sample_fraction=0.1):
         )
         
         print_memory_usage()
+        
+        # Save processed data to cache
+        logger.info(f"Saving processed data to cache: {cache_file}")
+        with open(cache_file, 'wb') as f:
+            pickle.dump({
+                'X_train': X_train,
+                'X_test': X_test,
+                'y_train': y_train,
+                'y_test': y_test,
+                'features': features
+            }, f, protocol=4)  # Protocol 4 for larger datasets
+        
         return X_train, X_test, y_train, y_test, features
         
     except Exception as e:

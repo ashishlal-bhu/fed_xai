@@ -1,39 +1,101 @@
 
 {
-  "privacy_experiments": {
-    "no_privacy": {
-      "name": "no_privacy_baseline",
-      "num_rounds": 25,
-      "num_clients": 8,
+  "experiment_group": "fed_xai_experiments",
+  "output_dir": "experiments",
+  "base_config": {
+    "task": "mortality",
+    "sample_fraction": 0.4,
+    "hidden_sizes": [256, 128, 64],
+    "dropout": 0.3,
+    "learning_rate": 0.001,
+    "l2_reg": 0.01,
+    "num_clients": 10,
+    "num_rounds": 25,
+    "local_epochs": 2,
+    "client_fraction": 0.8,
+    "batch_size": 32,
+    "min_clients": 3,
+    "collect_explanations": true,
+    "explanation_rounds": [5, 10, 15, 20, 25],
+    "save_explanations": true,
+    "explainability": {
       "use_lime": true,
       "use_shap": true,
-      "enable_privacy": false
+      "lime_samples": 1000,
+      "shap_samples": 100,
+      "max_features": 15,
+      "explanations_per_client": 10,
+      "explanation_batch_size": 5
     },
-    "low_privacy": {
-      "name": "low_privacy",
-      "num_rounds": 25,
-      "num_clients": 8,
+    "privacy": {
       "enable_privacy": true,
-      "epsilon": 10.0
+      "epsilon": 1.0,
+      "clip_values": true,
+      "clip_range": [-1.0, 1.0]
     },
-    "high_privacy": {
-      "name": "high_privacy",
-      "num_rounds": 25,
-      "num_clients": 8,
-      "enable_privacy": true,
-      "epsilon": 0.1
+    "aggregation": {
+      "aggregation_method": "weighted_average",
+      "discard_outliers": true,
+      "min_clients_per_round": 2
     }
   },
-  "explainer_experiments": {
-    "lime_only": {
-      "name": "lime_explainer",
-      "use_lime": true,
-      "use_shap": false
+  "experiments": [
+    {
+      "name": "baseline",
+      "config": {}
     },
-    "shap_only": {
-      "name": "shap_explainer",
-      "use_lime": false,
-      "use_shap": true
+    {
+      "name": "lime_only",
+      "config": {
+        "xai_config_type": "lime_only"
+      }
+    },
+    {
+      "name": "shap_only",
+      "config": {
+        "xai_config_type": "shap_only"
+      }
+    },
+    {
+      "name": "high_privacy",
+      "config": {
+        "privacy": {
+          "epsilon": 0.1,
+          "clip_range": [-0.5, 0.5]
+        }
+      }
+    },
+    {
+      "name": "no_privacy",
+      "config": {
+        "privacy": {
+          "enable_privacy": false
+        }
+      }
+    },
+    {
+      "name": "more_clients",
+      "config": {
+        "num_clients": 20
+      }
+    },
+    {
+      "name": "fewer_clients",
+      "config": {
+        "num_clients": 5
+      }
+    },
+    {
+      "name": "more_rounds",
+      "config": {
+        "num_rounds": 50
+      }
+    },
+    {
+      "name": "fewer_rounds",
+      "config": {
+        "num_rounds": 10
+      }
     }
-  }
+  ]
 }

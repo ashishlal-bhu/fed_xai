@@ -3,3 +3,7 @@ shivay_env
 myenv
 /data
 *DS_Store
+cached_data/mortality_40pct_data.pkl
+cached_data/reading_output.py
+cached_data/data_description.csv
+experiments.json
