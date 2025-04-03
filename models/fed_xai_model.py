@@ -343,13 +343,12 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                 try:
                     # Get LIME samples from config
                     num_samples = getattr(self.explainability_config, 'lime_samples', 5000)
-                    num_features = max_features or getattr(self.explainability_config, 'max_features', 10)
                     
                     # Generate LIME explanation
                     lime_exp = self.lime_explainer.explain_instance(
                         instance[0],
                         self.predict_proba,
-                        num_features=num_features,
+                        num_features=max_features or getattr(self.explainability_config, 'max_features', 10),
                         num_samples=num_samples
                     )
                     
@@ -375,6 +374,25 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                     # Check if all values are zero
                     if all(v == 0 for v in lime_importance.values()):
                         logger.warning("All LIME importance values are zero")
+                        
+                        # Try to use model weights as fallback
+                        if hasattr(self.model, 'get_weights'):
+                            try:
+                                weights = self.model.get_weights()
+                                if weights and len(weights) > 0:
+                                    # Use the first layer weights
+                                    first_layer_weights = weights[0]
+                                    if len(first_layer_weights.shape) == 2:
+                                        # Take absolute mean of weights for each feature
+                                        for i, feature in enumerate(self.feature_names):
+                                            if i < first_layer_weights.shape[0]:
+                                                lime_importance[feature] = float(np.mean(np.abs(first_layer_weights[i, :])))
+                                        logger.info("Used model weights as fallback for LIME importances")
+                            except Exception as e:
+                                logger.warning(f"Failed to use model weights as fallback: {str(e)}")
+                                # Use small random values as last resort
+                                for feature in lime_importance:
+                                    lime_importance[feature] = float(np.random.uniform(0.001, 0.01))
                     
                     explanations['lime'] = lime_importance
                     
@@ -419,30 +437,6 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                 except Exception as e:
                     logger.error(f"Error generating SHAP explanation: {str(e)}")
                     logger.error("Detailed error: ", exc_info=True)
-            
-            # Try to use model weights as fallback
-            if hasattr(self.model, 'get_weights'):
-                try:
-                    weights = self.model.get_weights()
-                    if weights and len(weights) > 0:
-                        # Use the first layer weights
-                        first_layer_weights = weights[0]
-                        if len(first_layer_weights.shape) == 2:
-                            # Take absolute mean of weights for each feature
-                            for i, feature in enumerate(self.feature_names):
-                                if i < first_layer_weights.shape[0]:
-                                    importances[feature] = float(np.mean(np.abs(first_layer_weights[i, :])))
-                except Exception as e:
-                    logger.error(f"Error extracting LIME importances: {str(e)}")
-                    logger.error("Detailed error: ", exc_info=True)
-                    # Return small random values as last resort
-                    return {feature: float(np.random.uniform(0.001, 0.01)) for feature in self.feature_names}
-            
-            # Normalize importances to ensure they sum to 1
-            total = sum(importances.values())
-            if total > 0:
-                for feature in importances:
-                    importances[feature] /= total
             
             return explanations
             
