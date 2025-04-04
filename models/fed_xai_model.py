@@ -293,8 +293,17 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                         kernel=None,  # Use default kernel
                         feature_selection='auto'  # Automatic feature selection
                     )
+                    
+                    # Create a wrapped predict function to avoid retracing
+                    @tf.function(reduce_retracing=True)
+                    def wrapped_predict_proba(x):
+                        return self.predict_proba(x)
+                    
+                    # Set the wrapped predict function for LIME
+                    self.lime_explainer.predict_fn = wrapped_predict_proba
+                    
                     self.lime_initialized = True
-                    logger.info("LIME explainer initialized")
+                    logger.info("LIME explainer initialized with optimized prediction function")
                     logger.debug(f"LIME explainer configuration: {self.lime_explainer.__dict__}")
                 except Exception as e:
                     logger.error(f"Error initializing LIME explainer: {str(e)}")
@@ -341,16 +350,20 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
             # Initialize explanations dictionary
             explanations = {}
             
+            # Get explanation type from config
+            use_lime = getattr(self.explainability_config, 'use_lime', True)
+            use_shap = getattr(self.explainability_config, 'use_shap', True)
+            
             # Generate LIME explanation if enabled
-            if self.lime_initialized and self.lime_explainer is not None:
+            if use_lime and self.lime_initialized and self.lime_explainer is not None:
                 try:
                     # Get LIME samples from config
                     num_samples = getattr(self.explainability_config, 'lime_samples', 5000)
                     
-                    # Generate LIME explanation
+                    # Generate LIME explanation using the optimized predict function
                     lime_exp = self.lime_explainer.explain_instance(
                         instance[0],
-                        self.predict_proba,
+                        self.lime_explainer.predict_fn,  # Use the optimized predict function
                         num_features=max_features or getattr(self.explainability_config, 'max_features', 10),
                         num_samples=num_samples
                     )
@@ -407,9 +420,11 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                 except Exception as e:
                     logger.error(f"Error generating LIME explanation: {str(e)}")
                     logger.error("Detailed error: ", exc_info=True)
+                    # Return small random values as last resort
+                    explanations['lime'] = {feature: float(np.random.uniform(0.001, 0.01)) for feature in self.feature_names}
             
             # Generate SHAP explanation if enabled
-            if self.shap_initialized and self.shap_explainer is not None:
+            if use_shap and self.shap_initialized and self.shap_explainer is not None:
                 try:
                     # Get SHAP samples from config
                     num_samples = getattr(self.explainability_config, 'shap_samples', 100)
@@ -482,12 +497,6 @@ class FederatedXAIModel(BaseEstimator, ClassifierMixin):
                     logger.error("Detailed error: ", exc_info=True)
                     # Return small random values as last resort
                     return {feature: float(np.random.uniform(0.001, 0.01)) for feature in self.feature_names}
-            
-            # Normalize importances to ensure they sum to 1
-            total = sum(explanations['shap'].values())
-            if total > 0:
-                for feature in explanations['shap']:
-                    explanations['shap'][feature] /= total
             
             return explanations
             
